@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, BackHandler } from "react-native";
 import { MailIcon, LockIcon } from "lucide-react-native";
 import InputField from "@/src/components/InputField";
@@ -10,6 +10,10 @@ import useForm from "../hooks/useForm";
 import { ConfimationDialog, LoadingDialog } from "@/src/components/Dialog";
 import { useLoading } from "../hooks/useLoading";
 import { CommonActions } from "@react-navigation/native";
+import { remoteUrl } from "@/src/types/constant";
+import Toast from "react-native-toast-message";
+import { errorToast } from "@/src/types/toast";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = ({ navigation }: any) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,18 +38,51 @@ const Login = ({ navigation }: any) => {
     validate
   );
 
-  const handleSubmit = () => {
-    if (isValidForm()) {
-      showLoading();
-      setTimeout(() => {
-        hideLoading();
+  useEffect(() => {
+    const checkToken = async () => {
+      if (await AsyncStorage.getItem("accessToken")) {
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
             routes: [{ name: "Home" }],
           })
         );
-      }, 1500);
+      }
+    };
+    checkToken();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (isValidForm()) {
+      showLoading();
+      try {
+        const response = await fetch(`${remoteUrl}/v1/user/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: form.email,
+            password: form.password,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          await AsyncStorage.setItem("accessToken", data.data.accessToken);
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: "Home" }],
+            })
+          );
+        } else {
+          Toast.show(errorToast(data.message));
+        }
+      } catch (error: any) {
+        Toast.show(errorToast(error.message));
+      } finally {
+        hideLoading();
+      }
     }
   };
 

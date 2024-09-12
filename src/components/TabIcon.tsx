@@ -5,19 +5,7 @@ const TabIcon = ({ focused, color, size, icon: Icon, label }: any) => {
   if (focused) {
     return (
       <View className="items-center border-t-2 border-blue-500 pt-1">
-        <View style={{ position: "relative", width: size, height: size }}>
-          <Icon
-            fill={color}
-            color={color}
-            size={size}
-            style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
-          />
-          <Icon
-            color={"#000"}
-            size={size}
-            style={{ position: "absolute", top: 0, left: 0, zIndex: 1 }}
-          />
-        </View>
+        <Icon color={color} size={size} />
         <Text className="text-xs font-bold" style={{ color }}>
           {label}
         </Text>
