@@ -6,6 +6,7 @@ import Home from "./views/home/Home";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
 import { Stack } from "../types/constant";
+import Verify from "./views/Verify";
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +33,7 @@ const App = () => {
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="ResetPassword" component={ResetPassword} />
+          <Stack.Screen name="Verify" component={Verify} />
         </>
       )}
     </Stack.Navigator>
