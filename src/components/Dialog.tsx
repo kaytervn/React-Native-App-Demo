@@ -5,6 +5,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native";
+import { BlurView } from "expo-blur";
 
 const ModalForm = ({
   children,
@@ -21,11 +22,21 @@ const ModalForm = ({
       visible={isVisible}
       onRequestClose={onCancel}
     >
-      <View
-        className="flex-1 justify-center items-center"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-      >
-        <View className="bg-white rounded-lg p-6">
+      <BlurView
+        intensity={100}
+        style={{ position: "absolute", width: "100%", height: "100%" }}
+      />
+      <View className="flex-1 justify-center items-center">
+        <View
+          className="bg-white rounded-lg p-6"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+        >
           <Text className="text-xl font-bold mb-2" style={{ color }}>
             {title}
           </Text>
@@ -111,7 +122,7 @@ const LoadingDialog = ({
   isVisible,
   title = "Đang xử lý",
   message = "Vui lòng chờ trong giây lát...",
-  color = "blue",
+  color = "royalblue",
 }: any) => {
   return (
     <ModalForm

@@ -15,7 +15,10 @@ const Loading = () => {
   }, []);
 
   return (
-    <View className="flex-1 justify-center items-center bg-blue-600">
+    <View
+      className="flex-1 justify-center items-center"
+      style={{ backgroundColor: "royalblue" }}
+    >
       <View className="items-center mb-5">
         <Image
           source={require("../../assets/cookiedu_logo.png")}

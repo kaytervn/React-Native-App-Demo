@@ -8,6 +8,7 @@ const InputField = ({
   value,
   placeholder,
   onChangeText,
+  onPress,
   secureTextEntry = false,
   keyboardType = "default",
   icon: Icon,
@@ -16,6 +17,9 @@ const InputField = ({
   children,
   error,
   maxLength = 100,
+  editable = true,
+  multiline = false,
+  numberOfLines = 1,
 }: any) => {
   return (
     <View className="mb-4">
@@ -23,38 +27,43 @@ const InputField = ({
         {title}
         {isRequire && <Text className="text-red-500">{" *"}</Text>}
       </Text>
-      <View
-        className={`flex-row items-center border rounded-md p-2 ${
-          error ? "border-red-500 bg-red-50" : "border-gray-300"
-        }`}
-      >
-        {Icon && <Icon size={20} color={error ? "#EF4444" : "#6B7280"} />}
-        <TextInput
-          className={`flex-1 ml-2 text-base ${
-            error ? "text-red-500" : "text-gray-700"
+      <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.7 : 1}>
+        <View
+          className={`flex-row items-center border rounded-md p-2 ${
+            error ? "border-red-500 bg-red-50" : "border-gray-300"
           }`}
-          placeholder={placeholder}
-          placeholderTextColor={error ? "#EF4460" : "#9CA3AF"}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
-          maxLength={maxLength}
-        />
-        {togglePassword && (
-          <TouchableOpacity onPress={togglePassword} hitSlop={20}>
-            {showPassword ? (
-              <EyeOffIcon size={20} color={error ? "#EF4444" : "#6B7280"} />
-            ) : (
-              <EyeIcon size={20} color={error ? "#EF4444" : "#6B7280"} />
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
+        >
+          {Icon && <Icon size={20} color={error ? "#EF4444" : "#6B7280"} />}
+          <TextInput
+            className={`flex-1 ml-2 text-base ${
+              error ? "text-red-500" : "text-gray-700"
+            }`}
+            placeholder={placeholder}
+            placeholderTextColor={error ? "#EF4460" : "#9CA3AF"}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            secureTextEntry={secureTextEntry}
+            maxLength={maxLength}
+            editable={editable && !onPress}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            textAlignVertical={multiline ? "top" : "center"}
+          />
+          {togglePassword && (
+            <TouchableOpacity onPress={togglePassword} hitSlop={20}>
+              {showPassword ? (
+                <EyeOffIcon size={20} color={error ? "#EF4444" : "#6B7280"} />
+              ) : (
+                <EyeIcon size={20} color={error ? "#EF4444" : "#6B7280"} />
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
       {error && <Text className="text-red-500 text-sm mt-1">{error}</Text>}
       {children}
     </View>
   );
 };
-
 export default InputField;

@@ -5,14 +5,19 @@ import useForm from "../hooks/useForm";
 import Button from "@/src/components/Button";
 import { KeyRoundIcon, LockIcon, ShieldCheckIcon } from "lucide-react-native";
 import useDialog from "../hooks/useDialog";
-import { AlertDialog } from "@/src/components/Dialog";
+import { AlertDialog, LoadingDialog } from "@/src/components/Dialog";
+import { useLoading } from "../hooks/useLoading";
+import { remoteUrl } from "@/src/types/constant";
+import Toast from "react-native-toast-message";
+import { errorToast } from "@/src/types/toast";
 
 const ResetPassword = ({ navigation, route }: any) => {
+  const { isLoading, showLoading, hideLoading } = useLoading();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const validate = (form: any) => {
     const newErrors: any = {};
     if (!form.otp.trim()) {
-      newErrors.otp = "Mã OTP không được bỏ trống";
+      newErrors.otp = "Mã xác thực không được bỏ trống";
     }
     if (!form.newPassword) {
       newErrors.newPassword = "Mật khẩu mới không được bỏ trống";
@@ -31,9 +36,32 @@ const ResetPassword = ({ navigation, route }: any) => {
     { otp: "", newPassword: "", confirmPassword: "" },
     validate
   );
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isValidForm()) {
-      showDialog();
+      showLoading();
+      try {
+        const response = await fetch(`${remoteUrl}/v1/user/reset-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: route.params.email,
+            otp: form.otp,
+            newPassword: form.newPassword,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          showDialog();
+        } else {
+          Toast.show(errorToast(data.message));
+        }
+      } catch (error: any) {
+        Toast.show(errorToast(error.message));
+      } finally {
+        hideLoading();
+      }
     }
   };
   const handleOK = () => {
@@ -42,14 +70,15 @@ const ResetPassword = ({ navigation, route }: any) => {
   };
   return (
     <Intro
+      loading={<LoadingDialog isVisible={isLoading} />}
       color="royalblue"
       header="Đặt lại mật khẩu"
       subHeader="Kiểm tra email của bạn để lấy mã OTP"
     >
       <InputField
-        title="Mã OTP"
+        title="Mã xác thực"
         isRequire={true}
-        placeholder="Nhập mã OTP"
+        placeholder="Nhập mã xác thực"
         onChangeText={(value: any) => handleChange("otp", value)}
         keyboardType="numeric"
         value={form.otp}

@@ -8,23 +8,20 @@ import ResetPassword from "./views/ResetPassword";
 import { remoteUrl, Stack } from "../types/constant";
 import Verify from "./views/Verify";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import EditProfile from "./views/home/EditProfile";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
     initialRouteName={isAuthenticated ? "Home" : "Login"}
     screenOptions={{ headerShown: false }}
   >
-    {isAuthenticated ? (
-      <Stack.Screen name="Home" component={Home} />
-    ) : (
-      <>
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Register" component={Register} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-        <Stack.Screen name="ResetPassword" component={ResetPassword} />
-        <Stack.Screen name="Verify" component={Verify} />
-      </>
-    )}
+    <Stack.Screen name="Login" component={Login} />
+    <Stack.Screen name="Register" component={Register} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+    <Stack.Screen name="ResetPassword" component={ResetPassword} />
+    <Stack.Screen name="Verify" component={Verify} />
+    <Stack.Screen name="Home" component={Home} />
+    <Stack.Screen name="EditProfile" component={EditProfile} />
   </Stack.Navigator>
 );
 
@@ -53,7 +50,7 @@ const App = () => {
         }
       } catch (error) {
         await AsyncStorage.removeItem("accessToken");
-        setIsAuthenticated(true);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
