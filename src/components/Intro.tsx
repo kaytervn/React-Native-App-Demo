@@ -6,8 +6,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import Toast from "react-native-toast-message";
 import { ChevronLeftIcon } from "lucide-react-native";
 
@@ -21,7 +22,14 @@ const Intro = ({
   topComponent,
   title,
   onBack,
+  onRefresh,
 }: any) => {
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  }, [onRefresh]);
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -54,6 +62,16 @@ const Intro = ({
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              onRefresh && (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={[color]}
+                  progressBackgroundColor={"#ffffff"}
+                />
+              )
+            }
           >
             {header && (
               <Text className="text-3xl font-bold" style={{ color }}>

@@ -1,4 +1,4 @@
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, Image } from "react-native";
 import React, { useEffect, useState } from "react";
 import Intro from "@/src/components/Intro";
 import {
@@ -9,51 +9,34 @@ import {
   PhoneIcon,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { remoteUrl } from "@/src/types/constant";
 import UserIcon from "@/src/assets/user_icon.png";
 import Button from "@/src/components/Button";
 import InfoItem from "@/src/components/InfoItem";
-import { useLoading } from "../../hooks/useLoading";
 import { ConfimationDialog, LoadingDialog } from "@/src/components/Dialog";
 import useDialog from "../../hooks/useDialog";
+import useFetch from "../../hooks/useFetch";
+import { dateToString, getDate } from "@/src/types/utils";
 
 const Profile = ({ navigation }: any) => {
-  const { isLoading, showLoading, hideLoading } = useLoading();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
+  const { get, loading } = useFetch();
   const [profile, setProfile] = useState({
-    displayName: "",
-    email: "",
-    phone: "",
-    birthDate: "",
-    bio: "",
+    displayName: "Đang tải",
+    email: "Đang tải",
+    phone: "Đang tải",
+    birthDate: "Đang tải",
+    bio: "Đang tải",
     avatarUrl: null,
   });
-
+  const fetchData = async () => {
+    const res = await get("/v1/user/profile");
+    setProfile({
+      ...res.data,
+      birthDate: res.data.birthDate ? getDate(res.data.birthDate) : null,
+    });
+  };
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        showLoading();
-        const token = await AsyncStorage.getItem("accessToken");
-        const response = await fetch(`${remoteUrl}/v1/user/profile`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data.data);
-        } else {
-          console.log(await response.json());
-        }
-      } catch (error) {
-        console.log(error);
-      } finally {
-        hideLoading();
-      }
-    };
-    fetchProfile();
+    fetchData();
   }, []);
 
   const handleLogout = () => {
@@ -62,15 +45,17 @@ const Profile = ({ navigation }: any) => {
     navigation.navigate("Home");
     navigation.navigate("Login");
   };
+
   const handleLogoutDialog = () => {
     showDialog();
   };
 
   return (
     <Intro
-      loading={<LoadingDialog isVisible={isLoading} />}
+      loading={<LoadingDialog isVisible={loading} />}
       color="royalblue"
       title="TÀI KHOẢN"
+      onRefresh={fetchData}
       topComponent={
         <View className="items-center my-5">
           <Image

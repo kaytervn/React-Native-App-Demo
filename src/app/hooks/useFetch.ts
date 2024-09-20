@@ -1,3 +1,4 @@
+import { remoteUrl } from "@/src/types/constant";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState, useCallback } from "react";
 
@@ -7,7 +8,7 @@ interface FetchOptions {
   headers?: Record<string, string>;
 }
 
-const useFetch = (baseUrl: string) => {
+const useFetch = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -17,61 +18,62 @@ const useFetch = (baseUrl: string) => {
       setError(null);
 
       try {
-        const accessToken = AsyncStorage.getItem("accessToken");
-        const url = `${baseUrl}${endpoint}`;
-        const headers = {
-          "Content-Type": "application/json",
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        const url = `${remoteUrl}${endpoint}`;
+        const headers: Record<string, string> = {
           Authorization: `Bearer ${accessToken}`,
           ...options.headers,
         };
 
+        if (!(options.body instanceof FormData)) {
+          headers["Content-Type"] = "application/json";
+        }
+
         const response = await fetch(url, {
           method: options.method,
           headers,
-          body: options.body ? JSON.stringify(options.body) : undefined,
+          body:
+            options.body instanceof FormData
+              ? options.body
+              : JSON.stringify(options.body),
         });
 
+        const contentType = response.headers.get("content-type");
+        const data = contentType?.includes("application/json")
+          ? await response.json()
+          : await response.text();
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(
+            typeof data === "string" ? data : JSON.stringify(data)
+          );
         }
 
-        const data = await response.json();
-        setLoading(false);
         return data;
       } catch (err) {
         setError(
           err instanceof Error ? err : new Error("An unknown error occurred")
         );
-        setLoading(false);
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
-    [baseUrl]
+    []
   );
 
-  const get = useCallback(
-    (endpoint: string) => fetchData(endpoint, { method: "GET" }),
-    [fetchData]
-  );
+  const createMethod =
+    (method: FetchOptions["method"]) => (endpoint: string, body?: any) =>
+      fetchData(endpoint, { method, body });
 
-  const post = useCallback(
-    (endpoint: string, body: any) =>
-      fetchData(endpoint, { method: "POST", body }),
-    [fetchData]
-  );
-
-  const put = useCallback(
-    (endpoint: string, body: any) =>
-      fetchData(endpoint, { method: "PUT", body }),
-    [fetchData]
-  );
-
-  const del = useCallback(
-    (endpoint: string) => fetchData(endpoint, { method: "DELETE" }),
-    [fetchData]
-  );
-
-  return { get, post, put, del, loading, error };
+  return {
+    get: createMethod("GET"),
+    post: createMethod("POST"),
+    put: createMethod("PUT"),
+    del: createMethod("DELETE"),
+    loading,
+    error,
+  };
 };
 
 export default useFetch;

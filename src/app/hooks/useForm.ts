@@ -8,7 +8,7 @@ const useForm = (
   const [form, setForm] = useState(initialValues);
   const [errors, setErrors] = useState(initialErrors);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: any, value: any) => {
     setForm((prevForm: any) => ({ ...prevForm, [field]: value }));
     setErrors((prevErrors: any) => ({ ...prevErrors, [field]: "" }));
   };
@@ -22,6 +22,7 @@ const useForm = (
   return {
     form,
     errors,
+    setForm,
     handleChange,
     isValidForm,
   };

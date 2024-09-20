@@ -8,7 +8,7 @@ import ResetPassword from "./views/ResetPassword";
 import { remoteUrl, Stack } from "../types/constant";
 import Verify from "./views/Verify";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import EditProfile from "./views/home/EditProfile";
+import EditProfle from "./views/home/EditProfile";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -21,7 +21,7 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ResetPassword" component={ResetPassword} />
     <Stack.Screen name="Verify" component={Verify} />
     <Stack.Screen name="Home" component={Home} />
-    <Stack.Screen name="EditProfile" component={EditProfile} />
+    <Stack.Screen name="EditProfile" component={EditProfle} />
   </Stack.Navigator>
 );
 
