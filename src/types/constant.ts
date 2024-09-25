@@ -18,6 +18,7 @@ const Stack = createNativeStackNavigator<{
   Verify: any;
   Profile: any;
   EditProfile: any;
+  ChangePassword: any;
 }>();
 
 const Tab = createBottomTabNavigator();

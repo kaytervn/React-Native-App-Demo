@@ -7,6 +7,7 @@ import {
   LogOutIcon,
   PencilIcon,
   PhoneIcon,
+  LockIcon,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import UserIcon from "@/src/assets/user_icon.png";
@@ -86,12 +87,27 @@ const Profile = ({ navigation }: any) => {
           value={profile.birthDate}
         />
       </View>
-      <Button
-        icon={PencilIcon}
-        title="CHỈNH SỬA"
-        color="royalblue"
-        onPress={() => navigation.navigate("EditProfile")}
-      />
+      <View className="flex flex-row justify-between">
+        <View className="w-1/2 pr-2">
+          <Button
+            className="w-full"
+            icon={PencilIcon}
+            title="CHỈNH SỬA"
+            color="royalblue"
+            onPress={() => navigation.navigate("EditProfile")}
+          />
+        </View>
+        <View className="w-1/2  pl-2">
+          <Button
+            className="w-full"
+            icon={LockIcon}
+            title="ĐỔI MẬT KHẨU"
+            color="green"
+            onPress={() => navigation.navigate("ChangePassword")}
+          />
+        </View>
+      </View>
+
       <Button
         icon={LogOutIcon}
         title="ĐĂNG XUẤT"
