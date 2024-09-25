@@ -1,6 +1,6 @@
 import { View, Text, FlatList, TextInput, Button, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import useDialog from "../../hooks/useDialog";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
@@ -11,36 +11,58 @@ const Post = () => {
 
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const { get, loading } = useFetch();
-
+  const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const size = 10;
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       const res = await get(`/v1/post/list?content=${searchQuery}`);
       setPosts(res.data.content);
     } else {
-      fetchData(); // Reset to default list if search is empty
+      fetchData(1, true); // Reset to default list if search is empty
     }
   };
 
   const clearSearch = () => {
     setSearchQuery("");
-    fetchData(); // Reset the post list when clearing the search
+    fetchData(1, true); // Reset the post list when clearing the search
   };
 
+  const fetchData = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
+    if (!hasMore && !shouldRefresh) return;
 
-  const fetchData = async () => {
-    const res = await get("/v1/post/list");
-    setPosts(res.data.content);
-  };
+    try {
+      const res = await get(`/v1/post/list?page=${pageNumber}&size=${size}`);
+      const newPosts = res.data.content;
+
+      if (shouldRefresh) {
+        setPosts(newPosts);
+      } else {
+        setPosts((prevPosts) => [...prevPosts, ...newPosts]);
+      }
+
+      setHasMore(newPosts.length === size);
+      setPage(pageNumber);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+  }, [get, hasMore, size]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(1, true).then(() => setRefreshing(false));
+  }, [fetchData]);
   useEffect(() => {
-    fetchData();
+    fetchData(page, true);
   }, []);
 
   return (
     
-    <View className="flex-1 p-4">
+    <View className="flex-1">
     {loading && <LoadingDialog isVisible={loading} />}
   
     <View style={styles.searchContainer}>
@@ -68,6 +90,7 @@ const Post = () => {
     <FlatList
       data={posts}
       keyExtractor={(item) => item._id}
+      style={styles.listContainer}
       renderItem={({ item }) => <PostItem post={item} />}
     />
   </View>
@@ -80,9 +103,15 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
+  listContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   searchContainer: {
     flexDirection: 'row',
     marginBottom: 16,
+    marginHorizontal:10,
+    marginTop:15
   },
   searchInputContainer: {
     flex: 1,

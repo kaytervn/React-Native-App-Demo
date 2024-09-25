@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 const PostItem = ({ post }: { post: PostModel }) => {
 
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.like || 0);
-  const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [commentCount, setCommentCount] = useState(post.comments || 0);
   const handleLike = () => {
     if (liked) {
       setLikeCount(likeCount - 1);
@@ -41,7 +41,7 @@ const PostItem = ({ post }: { post: PostModel }) => {
 
       {/* Like and Comment Count */}
       <View style={styles.statsContainer}>
-        <Text style={styles.statsText}>{likeCount} Likes • {post.commentCount || 0} Comments</Text>
+        <Text style={styles.statsText}>{likeCount} Likes • {post.comments || 0} Comments</Text>
       </View>
 
       {/* Action Buttons */}
@@ -66,9 +66,10 @@ const PostItem = ({ post }: { post: PostModel }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 4,
+    padding: 10,
     marginBottom: 10,
+    marginHorizontal: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
