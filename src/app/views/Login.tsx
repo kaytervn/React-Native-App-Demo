@@ -20,7 +20,7 @@ const Login = ({ navigation }: any) => {
   const { isLoading, showLoading, hideLoading } = useLoading();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   useBackHandler(showDialog);
-
+  
   const validate = (form: any) => {
     const newErrors: any = {};
     if (!form.email.trim()) {

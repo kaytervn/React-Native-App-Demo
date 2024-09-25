@@ -42,8 +42,8 @@ const useFetch = () => {
         const data = contentType?.includes("application/json")
           ? await response.json()
           : await response.text();
-
         return data;
+        
       } catch (err) {
         setError(
           err instanceof Error ? err : new Error("An unknown error occurred")
