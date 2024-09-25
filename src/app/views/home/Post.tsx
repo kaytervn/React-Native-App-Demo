@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TextInput, Button, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, FlatList, TextInput, Button, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import useDialog from "../../hooks/useDialog";
@@ -15,21 +15,22 @@ const Post = () => {
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [page, setPage] = useState(1);
-  const size = 10;
+  const [page, setPage] = useState(0);
+
+  const size = 4;
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       const res = await get(`/v1/post/list?content=${searchQuery}`);
       setPosts(res.data.content);
     } else {
-      fetchData(1, true); // Reset to default list if search is empty
+      fetchData(0, true); // Reset to default list if search is empty
     }
   };
 
   const clearSearch = () => {
     setSearchQuery("");
-    fetchData(1, true); // Reset the post list when clearing the search
+    fetchData(0, true); // Reset the post list when clearing the search
   };
 
   const fetchData = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
@@ -37,8 +38,9 @@ const Post = () => {
 
     try {
       const res = await get(`/v1/post/list?page=${pageNumber}&size=${size}`);
+      console.log('res', res.data.content);
       const newPosts = res.data.content;
-
+      
       if (shouldRefresh) {
         setPosts(newPosts);
       } else {
@@ -54,17 +56,23 @@ const Post = () => {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchData(1, true).then(() => setRefreshing(false));
+    fetchData(0, true).then(() => setRefreshing(false));
   }, [fetchData]);
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      fetchData(page + 1);
+    }
+  };
+
   useEffect(() => {
-    fetchData(page, true);
+    fetchData(0, true);
   }, []);
 
   return (
     
     <View className="flex-1">
-    {loading && <LoadingDialog isVisible={loading} />}
-  
+    
     <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -92,6 +100,14 @@ const Post = () => {
       keyExtractor={(item) => item._id}
       style={styles.listContainer}
       renderItem={({ item }) => <PostItem post={item} />}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={() => 
+        loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
+      }
+    
     />
   </View>
   );
