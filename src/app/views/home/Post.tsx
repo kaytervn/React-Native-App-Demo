@@ -11,6 +11,7 @@ const Post = () => {
 
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const { get, loading } = useFetch();
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -38,7 +39,6 @@ const Post = () => {
 
     try {
       const res = await get(`/v1/post/list?page=${pageNumber}&size=${size}`);
-      console.log('res', res.data.content);
       const newPosts = res.data.content;
       
       if (shouldRefresh) {
@@ -51,11 +51,14 @@ const Post = () => {
       setPage(pageNumber);
     } catch (error) {
       console.error('Error fetching posts:', error);
+    } finally {
+      setInitialLoading(false);
     }
   }, [get, hasMore, size]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+
     fetchData(0, true).then(() => setRefreshing(false));
   }, [fetchData]);
 
@@ -72,7 +75,8 @@ const Post = () => {
   return (
     
     <View className="flex-1">
-    
+    {initialLoading && <LoadingDialog isVisible={initialLoading} />}
+  
     <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
