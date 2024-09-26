@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo,useCallback } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   Image,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/src/components/Button";
 import useFetch from "../../hooks/useFetch";
 import userIcon from "../../../assets/user_icon.png";
 import { MessageCircleIcon, UserPlusIcon } from "lucide-react-native";
+
 
 interface Friend {
   _id: string;
@@ -22,29 +24,60 @@ interface Friend {
 }
 
 const FriendsList = () => {
-  const { get } = useFetch();
+  const { get, loading } = useFetch();
   const [friends, setFriends] = useState<Friend[]>([]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("friends");
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
 
-  useEffect(() => {
-    fetchFriends();
-  }, []);
 
-  const fetchFriends = async () => {
+  const size = 10; // Number of friends to load per page
+
+  const fetchFriends = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
+    if (!hasMore && !shouldRefresh) return;
+
     try {
-      const res = await get("/v1/friendship/friends");
-      const friendList = res.data.map((friendship: any) => ({
+
+      const res = await get(`/v1/friendship/friends?page=${pageNumber}&size=${size}`);
+      const newFriends = res.data.map((friendship: any) => ({
+
         _id: friendship.receiver._id,
         displayName: friendship.receiver.displayName,
         email: friendship.receiver.email,
         avatarUrl: friendship.receiver.avatarUrl,
       }));
-      setFriends(friendList);
+
+      if (shouldRefresh) {
+        setFriends(newFriends);
+      } else {
+        setFriends((prevFriends) => [...prevFriends, ...newFriends]);
+      }
+
+      setHasMore(newFriends.length === size);
+      setPage(pageNumber);
+
     } catch (error) {
       console.error("Error fetching friends:", error);
+    }
+  }, [get, hasMore, size]);
+
+  useEffect(() => {
+    fetchFriends(0, true);
+  }, [fetchFriends]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchFriends(0, true).then(() => setRefreshing(false));
+  }, [fetchFriends]);
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      fetchFriends(page + 1);
     }
   };
 
@@ -162,10 +195,18 @@ const FriendsList = () => {
         keyExtractor={(item) => item[0]}
         renderItem={({ item: [letter, groupFriends] }) => (
           <View>
+
             <Text className="text-xl font-bold mt-4 mb-2">{letter}</Text>
             {groupFriends.map((friend) => renderFriendItem({ item: friend }))}
           </View>
         )}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() =>
+          loading && hasMore ? <ActivityIndicator size="large" color="#0084ff" /> : null
+        }
       />
 
       <Modal

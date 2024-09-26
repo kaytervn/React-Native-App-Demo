@@ -19,7 +19,7 @@ const useFetch = () => {
 
       try {
         const accessToken = await AsyncStorage.getItem("accessToken");
-        const url = `${remoteUrl}${endpoint}`;
+        let url = `${remoteUrl}${endpoint}`;
         const headers: Record<string, string> = {
           Authorization: `Bearer ${accessToken}`,
           ...options.headers,
@@ -33,9 +33,11 @@ const useFetch = () => {
           method: options.method,
           headers,
           body:
-            options.body instanceof FormData
-              ? options.body
-              : JSON.stringify(options.body),
+            options.method !== "GET" && options.body
+              ? options.body instanceof FormData
+                ? options.body
+                : JSON.stringify(options.body)
+              : undefined,
         });
 
         const contentType = response.headers.get("content-type");
@@ -43,7 +45,6 @@ const useFetch = () => {
           ? await response.json()
           : await response.text();
         return data;
-        
       } catch (err) {
         setError(
           err instanceof Error ? err : new Error("An unknown error occurred")
@@ -57,8 +58,18 @@ const useFetch = () => {
   );
 
   const createMethod =
-    (method: FetchOptions["method"]) => (endpoint: string, body?: any) =>
-      fetchData(endpoint, { method, body });
+    (method: FetchOptions["method"]) =>
+    (endpoint: string, bodyOrParams?: any) => {
+      let queryString = "";
+      if (method === "GET" && bodyOrParams) {
+        queryString = `?${new URLSearchParams(bodyOrParams).toString()}`;
+      }
+
+      return fetchData(endpoint + queryString, {
+        method,
+        body: method !== "GET" ? bodyOrParams : undefined,
+      });
+    };
 
   return {
     get: createMethod("GET"),

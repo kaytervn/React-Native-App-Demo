@@ -10,7 +10,7 @@ import {
   LockIcon,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import UserIcon from "@/src/assets/user_icon.png";
+import UserIcon from "@/src/assets/user_icon.png"
 import Button from "@/src/components/Button";
 import InfoItem from "@/src/components/InfoItem";
 import { ConfimationDialog, LoadingDialog } from "@/src/components/Dialog";
