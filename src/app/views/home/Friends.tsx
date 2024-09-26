@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useFetch from '../../hooks/useFetch';
 import userIcon from '../../../assets/user_icon.png';
@@ -12,28 +12,53 @@ interface Friend {
 }
 
 const FriendsList = () => {
-  const { get } = useFetch();
+  const { get, loading } = useFetch();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('friends');
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
 
-  useEffect(() => {
-    fetchFriends();
-  }, []);
+  const size = 10; // Number of friends to load per page
 
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
+    if (!hasMore && !shouldRefresh) return;
+
     try {
-      const res = await get('/v1/friendship/friends');
-      const friendList = res.data.map((friendship: any) => ({
+      const res = await get(`/v1/friendship/friends?page=${pageNumber}&size=${size}`);
+      const newFriends = res.data.map((friendship: any) => ({
         _id: friendship.receiver._id,
         displayName: friendship.receiver.displayName,
         email: friendship.receiver.email,
         avatarUrl: friendship.receiver.avatarUrl,
       }));
-      console.log('Fetched friends:', friendList);  // Log fetched data
-      setFriends(friendList);
+
+      if (shouldRefresh) {
+        setFriends(newFriends);
+      } else {
+        setFriends((prevFriends) => [...prevFriends, ...newFriends]);
+      }
+
+      setHasMore(newFriends.length === size);
+      setPage(pageNumber);
     } catch (error) {
       console.error('Error fetching friends:', error);
+    }
+  }, [get, hasMore, size]);
+
+  useEffect(() => {
+    fetchFriends(0, true);
+  }, [fetchFriends]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchFriends(0, true).then(() => setRefreshing(false));
+  }, [fetchFriends]);
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      fetchFriends(page + 1);
     }
   };
 
@@ -44,7 +69,6 @@ const FriendsList = () => {
   }, [friends, searchQuery]);
 
   const renderFriendItem = ({ item }: { item: Friend }) => {
-    console.log('Rendering friend:', item.displayName, 'Avatar URL:', item.avatarUrl);
     return (
       <View style={styles.friendItem}>
         <Image
@@ -122,9 +146,20 @@ const FriendsList = () => {
         renderItem={({ item: [letter, groupFriends] }) => (
           <View>
             <Text style={styles.letterHeader}>{letter}</Text>
-            {groupFriends.map((friend) => renderFriendItem({ item: friend }))}
+            {groupFriends.map((friend) => (
+              <React.Fragment key={friend._id}>
+                {renderFriendItem({ item: friend })}
+              </React.Fragment>
+            ))}
           </View>
         )}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() =>
+          loading && hasMore ? <ActivityIndicator size="large" color="#0084ff" /> : null
+        }
       />
     </View>
   );
