@@ -73,6 +73,7 @@ const ChangePassword = ({ navigation, route }: any) => {
   };
   return (
     <Intro
+      onBack={() => navigation.goBack()}
       loading={<LoadingDialog isVisible={isLoading} />}
       color="royalblue"
       header="Thay đổi mật khẩu"
