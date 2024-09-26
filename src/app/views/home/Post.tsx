@@ -84,7 +84,7 @@ const Post = ({ navigation }: any) => {
   const renderItem = ({ item }: { item: PostModel }) => (
     <TouchableOpacity
       onPress={() => 
-        navigation.navigate("PostDetail")
+        navigation.navigate("PostDetail", {postId:item._id})
       } 
     >
       <PostItem post={item} />
@@ -92,7 +92,7 @@ const Post = ({ navigation }: any) => {
   );
 
   return (
-    
+
     <View className="flex-1">
     {initialLoading && <LoadingDialog isVisible={initialLoading} />}
   
