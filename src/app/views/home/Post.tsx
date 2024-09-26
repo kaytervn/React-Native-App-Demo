@@ -7,11 +7,10 @@ import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 
-const Post = () => {
-
+const Post = ({ navigation }: any) => {
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const { get, loading } = useFetch();
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -22,8 +21,12 @@ const Post = () => {
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
-      const res = await get(`/v1/post/list?content=${searchQuery}`);
+      setInitialLoading(true)
+      const res = await get(`/v1/post/list`, {content:searchQuery});
       setPosts(res.data.content);
+      setHasMore(false)
+      setPage(0)
+      setInitialLoading(false)
     } else {
       fetchData(0, true); // Reset to default list if search is empty
     }
@@ -38,7 +41,7 @@ const Post = () => {
     if (!hasMore && !shouldRefresh) return;
 
     try {
-      const res = await get(`/v1/post/list?page=${pageNumber}&size=${size}`);
+      const res = await get(`/v1/post/list`, {page:pageNumber, size});
       const newPosts = res.data.content;
       
       if (shouldRefresh) {
@@ -58,7 +61,7 @@ const Post = () => {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-
+    setSearchQuery("");
     fetchData(0, true).then(() => setRefreshing(false));
   }, [fetchData]);
 
@@ -71,6 +74,22 @@ const Post = () => {
   useEffect(() => {
     fetchData(0, true);
   }, []);
+
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No posts found</Text>
+    </View>
+  );
+
+  const renderItem = ({ item }: { item: PostModel }) => (
+    <TouchableOpacity
+      onPress={() => 
+        navigation.navigate("PostDetail")
+      } 
+    >
+      <PostItem post={item} />
+    </TouchableOpacity>
+  );
 
   return (
     
@@ -101,13 +120,14 @@ const Post = () => {
 
     <FlatList
       data={posts}
-      keyExtractor={(item) => item._id}
+      keyExtractor={(item, index) => `${item._id}-${index}`}
       style={styles.listContainer}
-      renderItem={({ item }) => <PostItem post={item} />}
+      renderItem={renderItem}
       refreshing={refreshing}
       onRefresh={handleRefresh}
       onEndReached={handleLoadMore}
       onEndReachedThreshold={0.5}
+      ListEmptyComponent={renderEmptyComponent}
       ListFooterComponent={() => 
         loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
       }
@@ -169,6 +189,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#999',
+    textAlign: 'center',
   },
 });
 
