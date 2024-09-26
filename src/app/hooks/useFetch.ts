@@ -1,4 +1,5 @@
 import { remoteUrl } from "@/src/types/constant";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState, useCallback } from "react";
 
 interface FetchOptions {
@@ -17,7 +18,7 @@ const useFetch = () => {
       setError(null);
 
       try {
-        const accessToken = await localStorage.getItem("accessToken");
+        const accessToken = await AsyncStorage.getItem("accessToken");
         let url = `${remoteUrl}${endpoint}`;
         const headers: Record<string, string> = {
           Authorization: `Bearer ${accessToken}`,
