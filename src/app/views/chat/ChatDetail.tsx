@@ -45,23 +45,23 @@ const ChatDetail = ({ navigation, route }: any) => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-between p-4 border-b border-gray-300">
+      <View className="flex-row items-center justify-between p-4 border-b border-blue-300 bg-sky-500">
         <View className="flex-row items-center">
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <ArrowLeft size={24} />
+            <ArrowLeft size={24} className="text-white" />
           </TouchableOpacity>
           <Image
             source={require("../../../assets/user_icon.png")}
             className="w-10 h-10 rounded-full ml-3"
           />
-          <Text className="ml-3 font-bold text-lg">Panda</Text>
+          <Text className="ml-3 font-bold text-lg text-white">Hữu Tài</Text>
         </View>
         <View className="flex-row">
           <TouchableOpacity className="mr-4">
-            <Search size={24} />
+            <Search size={24} className="text-white" />
           </TouchableOpacity>
           <TouchableOpacity>
-            <Menu size={24} />
+            <Menu size={24} className="text-white" />
           </TouchableOpacity>
         </View>
       </View>
