@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, Image, ActivityIndic
 import { Ionicons } from '@expo/vector-icons';
 import useFetch from '../../hooks/useFetch';
 import userIcon from '../../../assets/user_icon.png';
+import AddFriend from '../friend/AddFriend'; 
 
 interface Friend {
   _id: string;
@@ -19,8 +20,8 @@ const FriendsList = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-
-  const size = 10; // Number of friends to load per page
+  const [isAddFriendVisible, setIsAddFriendVisible] = useState(false); 
+  const size = 10; 
 
   const fetchFriends = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
     if (!hasMore && !shouldRefresh) return;
@@ -106,7 +107,7 @@ const FriendsList = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity className="p-2 ml-1" onPress={() => console.log('Add friend')}>
+        <TouchableOpacity className="p-2 ml-1" onPress={() => setIsAddFriendVisible(true)}>
           <Ionicons name="person-add-outline" size={24} color="#0084ff" />
         </TouchableOpacity>
         <TouchableOpacity className="p-2 ml-1" onPress={() => console.log('Scan QR')}>
@@ -128,20 +129,20 @@ const FriendsList = () => {
         </TouchableOpacity>
       </View>
       <View className="mb-4">
-        <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
-          <Ionicons name="people-outline" size={24} color="#0084ff" />
-          <Text className="ml-3 text-base text-gray-900">Danh sách chặn</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
-          <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-          <Text className="ml-3 text-base text-gray-900">Lời mời kết bạn (20)</Text>
-        </TouchableOpacity>
-      </View>
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-lg font-bold">Yêu thích</Text>
-        <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-full">
-          <Text className="text-blue-500">+ Thêm</Text>
-        </TouchableOpacity>
+              <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
+                <Ionicons name="people-outline" size={24} color="#0084ff" />
+                <Text className="ml-3 text-base text-gray-900">Danh sách chặn</Text>
+              </TouchableOpacity>
+              <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
+                <Ionicons name="person-add-outline" size={24} color="#0084ff" />
+                <Text className="ml-3 text-base text-gray-900">Lời mời kết bạn (20)</Text>
+              </TouchableOpacity>
+            </View>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-bold">Yêu thích</Text>
+              <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-full">
+                <Text className="text-blue-500">+ Thêm</Text>
+              </TouchableOpacity>
       </View>
       <FlatList
         data={sortedGroups}
@@ -163,6 +164,11 @@ const FriendsList = () => {
         ListFooterComponent={() =>
           loading && hasMore ? <ActivityIndicator size="large" color="#0084ff" /> : null
         }
+      />
+
+      <AddFriend
+        visible={isAddFriendVisible}
+        onClose={() => setIsAddFriendVisible(false)}
       />
     </View>
   );
