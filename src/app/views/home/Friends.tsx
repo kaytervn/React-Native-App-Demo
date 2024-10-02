@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useFetch from '../../hooks/useFetch';
 import userIcon from '../../../assets/user_icon.png';
@@ -26,8 +26,8 @@ const FriendsList = () => {
     if (!hasMore && !shouldRefresh) return;
 
     try {
-      const res = await get(`/v1/friendship/friends?page=${pageNumber}&size=${size}`);
-      const newFriends = res.data.map((friendship: any) => ({
+      const res = await get(`/v1/friendship/list?page=${pageNumber}&size=${size}`);
+      const newFriends = res.data.content.map((friendship: any) => ({
         _id: friendship.receiver._id,
         displayName: friendship.receiver.displayName,
         email: friendship.receiver.email,
@@ -70,16 +70,16 @@ const FriendsList = () => {
 
   const renderFriendItem = ({ item }: { item: Friend }) => {
     return (
-      <View style={styles.friendItem}>
+      <View className="flex-row items-center mb-4">
         <Image
           source={item.avatarUrl ? { uri: item.avatarUrl } : userIcon}
-          style={styles.avatar}
+          className="w-12 h-12 rounded-full mr-3"
           defaultSource={userIcon}
           onError={(e) => console.log('Error loading avatar:', e.nativeEvent.error)}
         />
-        <View style={styles.friendInfo}>
-          <Text style={styles.friendName}>{item.displayName}</Text>
-          <Text style={styles.friendEmail}>{item.email}</Text>
+        <View className="flex-1">
+          <Text className="text-base font-medium">{item.displayName}</Text>
+          <Text className="text-sm text-gray-500">{item.email}</Text>
         </View>
       </View>
     );
@@ -97,47 +97,50 @@ const FriendsList = () => {
   const sortedGroups = Object.entries(groupedFriends).sort(([a], [b]) => a.localeCompare(b));
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+    <View className="flex-1 bg-white p-4">
+      <View className="flex-row items-center bg-gray-100 rounded-full px-3 mb-3">
+        <Ionicons name="search" size={20} color="#999" className="mr-2" />
         <TextInput
-          style={styles.searchInput}
+          className="flex-1 h-10 text-base"
           placeholder="Tìm kiếm"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity style={styles.qrButton}>
+        <TouchableOpacity className="p-2 ml-1" onPress={() => console.log('Add friend')}>
+          <Ionicons name="person-add-outline" size={24} color="#0084ff" />
+        </TouchableOpacity>
+        <TouchableOpacity className="p-2 ml-1" onPress={() => console.log('Scan QR')}>
           <Ionicons name="qr-code-outline" size={24} color="#0084ff" />
         </TouchableOpacity>
       </View>
-      <View style={styles.tabContainer}>
+      <View className="flex-row mb-4 border-b border-gray-200">
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
+          className={`flex-1 py-3 items-center ${activeTab === 'friends' ? 'border-b-2 border-blue-500' : ''}`}
           onPress={() => setActiveTab('friends')}
         >
-          <Text style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>Bạn bè</Text>
+          <Text className={`text-base ${activeTab === 'friends' ? 'text-blue-500 font-bold' : 'text-gray-500'}`}>Bạn bè</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'groups' && styles.activeTab]}
+          className={`flex-1 py-3 items-center ${activeTab === 'groups' ? 'border-b-2 border-blue-500' : ''}`}
           onPress={() => setActiveTab('groups')}
         >
-          <Text style={[styles.tabText, activeTab === 'groups' && styles.activeTabText]}>Nhóm</Text>
+          <Text className={`text-base ${activeTab === 'groups' ? 'text-blue-500 font-bold' : 'text-gray-500'}`}>Nhóm</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.optionsContainer}>
-        <TouchableOpacity style={styles.option}>
+      <View className="mb-4">
+        <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
           <Ionicons name="people-outline" size={24} color="#0084ff" />
-          <Text style={styles.optionText}>Danh sách chặn</Text>
+          <Text className="ml-3 text-base text-gray-900">Danh sách chặn</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.option}>
+        <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
           <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-          <Text style={styles.optionText}>Lời mời kết bạn (20)</Text>
+          <Text className="ml-3 text-base text-gray-900">Lời mời kết bạn (20)</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.favoritesContainer}>
-        <Text style={styles.sectionTitle}>Yêu thích</Text>
-        <TouchableOpacity style={styles.addFavorite}>
-          <Text style={styles.addFavoriteText}>+ Thêm</Text>
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-lg font-bold">Yêu thích</Text>
+        <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-full">
+          <Text className="text-blue-500">+ Thêm</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -145,7 +148,7 @@ const FriendsList = () => {
         keyExtractor={(item) => item[0]}
         renderItem={({ item: [letter, groupFriends] }) => (
           <View>
-            <Text style={styles.letterHeader}>{letter}</Text>
+            <Text className="text-lg font-bold mt-4 mb-2">{letter}</Text>
             {groupFriends.map((friend) => (
               <React.Fragment key={friend._id}>
                 {renderFriendItem({ item: friend })}
@@ -164,118 +167,5 @@ const FriendsList = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f2f5',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
-  },
-  qrButton: {
-    padding: 8,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#0084ff',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#65676b',
-  },
-  activeTabText: {
-    color: '#0084ff',
-    fontWeight: 'bold',
-  },
-  optionsContainer: {
-    marginBottom: 16,
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: '#f0f2f5',
-    padding: 12,
-    borderRadius: 8,
-  },
-  optionText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#050505',
-  },
-  favoritesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  addFavorite: {
-    backgroundColor: '#f0f2f5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  addFavoriteText: {
-    color: '#0084ff',
-  },
-  letterHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  friendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  friendName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  friendEmail: {
-    fontSize: 14,
-    color: '#65676b',
-  },
-});
 
 export default FriendsList;
