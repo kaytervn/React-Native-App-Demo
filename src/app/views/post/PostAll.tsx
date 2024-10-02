@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
@@ -6,66 +6,50 @@ import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 
-const Post = ({ navigation }: any) => {
+const PostAll = ({ navigation, searchQuery }: any) => {
   const { get, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState(0);
-  const isInitialMount = useRef(true);
 
   const size = 4;
 
-  const tabs = [
-    { title: "Cộng đồng", getMyPosts: 0, getMyFriendPosts: 0 },
-    { title: "Bạn bè", getMyPosts: 0, getMyFriendPosts: 1 },
-    { title: "Tôi", getMyPosts: 1, getMyFriendPosts: 0 },
-  ];
-
   const handleSearch = async () => {
-    setLoadingDialog(true);
-    try {
-      const res = await get(`/v1/post/list`, {
-        content: searchQuery.trim(),
-        page: 0,
-        size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
-      });
+    if (searchQuery.trim() === "") {
+      setPage(0)
+      setHasMore(true)
+      fetchData(0);
+    }
+    else {
+      setLoadingDialog(true)
+      const res = await get(`/v1/post/list`, {content:searchQuery, page:0, size});
       setPosts(res.data.content);
-      setHasMore(true);
-      setPage(0);
-    } catch (error) {
-      console.error('Error searching posts:', error);
-    } finally {
-      setLoadingDialog(false);
+      setHasMore(true)
+      setPage(0)
+      setLoadingDialog(false)
     }
   };
 
   const clearSearch = () => {
-    setSearchQuery("");
-    setPage(0);
-    fetchData(0);
+    setLoadingDialog(true)
+    setPage(0)
+    fetchData(0); 
   };
 
   const fetchData = useCallback(async (pageNumber: number) => {
-    if (!hasMore && pageNumber !== 0) return;
+    if (!hasMore) return;
     try {
-      const res = await get(`/v1/post/list`, {
-        page: pageNumber,
-        size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
-      });
+      const res = await get(`/v1/post/list`, {page:pageNumber, size});
+      console.log('PostAll response:', res.data.content);
       const newPosts = res.data.content;
       if (pageNumber === 0) {
         setPosts(newPosts);
       } else {
         setPosts((prevPosts) => [...prevPosts, ...newPosts]);
       }
+
       setHasMore(newPosts.length === size);
       setPage(pageNumber);
     } catch (error) {
@@ -73,11 +57,10 @@ const Post = ({ navigation }: any) => {
     } finally {
       setLoadingDialog(false);
     }
-  }, [get, hasMore, size, activeTab]);
+  }, [get, hasMore, size]);
 
-  const handleRefresh = () => {
+  const handleRefresh = () =>{
     setRefreshing(true);
-    setSearchQuery("");
     setPage(0);
     fetchData(0).then(() => setRefreshing(false));
   };
@@ -87,22 +70,6 @@ const Post = ({ navigation }: any) => {
       fetchData(page + 1);
     }
   };
-
-  const handleTabChange = (index: number) => {
-    setActiveTab(index);
-    setPage(0);
-    setSearchQuery("");
-    setHasMore(true);
-    setPosts([]);
-  };
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-    } else {
-      fetchData(0);
-    }
-  }, [activeTab]);
 
   useEffect(() => {
     fetchData(0);
@@ -127,43 +94,7 @@ const Post = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
-    
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search posts..."
-            placeholderTextColor="#999"
-            style={styles.searchInput}
-            onSubmitEditing={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
-          <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabContainer}>
-        {tabs.map((tab, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.tab, activeTab === index && styles.activeTab]}
-            onPress={() => handleTabChange(index)}
-          >
-            <Text style={[styles.tabText, activeTab === index && styles.activeTabText]}>
-              {tab.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
+  
       <FlatList
         data={posts}
         keyExtractor={(item, index) => `${item._id} - ${index}`}
@@ -235,29 +166,6 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    marginHorizontal: 10,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#007AFF',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  activeTabText: {
-    color: '#007AFF',
-    fontWeight: 'bold',
-  },
 });
 
-export default Post;
+export default PostAll;
