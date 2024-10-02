@@ -15,6 +15,8 @@ import PostDetail from "./views/post/PostDetail";
 import Post from "./views/home/Post";
 import PostAll from "./views/post/PostAll";
 import PostSelf from "./views/post/PostSelf";
+import ChatList from "./views/chat/ChatList";
+import ChatDetail from "./views/chat/ChatDetail";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -32,7 +34,8 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
     <Stack.Screen name="Post" component={Post} />
     <Stack.Screen name="PostDetail" component={PostDetail} />
-
+    <Stack.Screen name="ChatList" component={ChatList} />
+    <Stack.Screen name="ChatDetail" component={ChatDetail} />
   </Stack.Navigator>
 );
 

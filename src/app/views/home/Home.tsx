@@ -6,7 +6,7 @@ import {
   NewspaperIcon,
   BellIcon,
 } from "lucide-react-native";
-import Chat from "./Chat";
+import ChatList from "../chat/ChatList";
 import Profile from "./Profile";
 import { Tab } from "@/src/types/constant";
 import TabIcon from "@/src/components/TabIcon";
@@ -36,7 +36,7 @@ const Home = () => {
       >
         <Tab.Screen
           name="Chat"
-          component={Chat}
+          component={ChatList}
           options={{
             tabBarIcon: ({ color, size, focused }) => (
               <TabIcon
