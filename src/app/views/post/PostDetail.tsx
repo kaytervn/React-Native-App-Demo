@@ -35,7 +35,6 @@ const PostDetail = ({ navigation, route }: any) => {
   //   setLiked(!liked);
   // };
 
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

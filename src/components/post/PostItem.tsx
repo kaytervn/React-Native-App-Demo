@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 const PostItem = ({ post }: { post: PostModel }) => {
 
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes || 0);
-  const [commentCount, setCommentCount] = useState(post.comments || 0);
+  const [likeCount, setLikeCount] = useState(post.totalReactions || 0);
+
   const handleLike = () => {
     if (liked) {
       setLikeCount(likeCount - 1);
@@ -27,7 +27,7 @@ const PostItem = ({ post }: { post: PostModel }) => {
         />
         <View style={styles.nameTimeContainer}>
           <Text style={styles.userName}>{post.user.displayName}</Text>
-          <Text style={styles.timeAgo}>2 hours ago</Text>
+          <Text style={styles.timeAgo}>{post.updatedAt}</Text>
         </View>
       </View>
 
@@ -41,7 +41,7 @@ const PostItem = ({ post }: { post: PostModel }) => {
 
       {/* Like and Comment Count */}
       <View style={styles.statsContainer}>
-        <Text style={styles.statsText}>{likeCount} Likes • {post.comments || 0} Comments</Text>
+        <Text style={styles.statsText}>{post.totalReactions} Likes • {post.totalComments || 0} Comments</Text>
       </View>
 
       {/* Action Buttons */}

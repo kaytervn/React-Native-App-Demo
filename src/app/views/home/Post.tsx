@@ -1,16 +1,14 @@
-import { View, Text, FlatList, TextInput, Button, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
-import useDialog from "../../hooks/useDialog";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 
 const Post = ({ navigation }: any) => {
-  const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const { get, loading } = useFetch();
-  const [initialLoading, setInitialLoading] = useState(false);
+  const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -20,31 +18,35 @@ const Post = ({ navigation }: any) => {
   const size = 4;
 
   const handleSearch = async () => {
-    if (searchQuery.trim()) {
-      setInitialLoading(true)
-      const res = await get(`/v1/post/list`, {content:searchQuery});
-      setPosts(res.data.content);
-      setHasMore(false)
+    if (searchQuery.trim() === "") {
       setPage(0)
-      setInitialLoading(false)
-    } else {
-      fetchData(0, true); // Reset to default list if search is empty
+      setHasMore(true)
+      fetchData(0);
+    }
+    else {
+      setLoadingDialog(true)
+      const res = await get(`/v1/post/list`, {content:searchQuery, page:0, size});
+      setPosts(res.data.content);
+      setHasMore(true)
+      setPage(0)
+      setLoadingDialog(false)
     }
   };
 
   const clearSearch = () => {
-    setSearchQuery("");
-    fetchData(0, true); // Reset the post list when clearing the search
+    setLoadingDialog(true)
+    setSearchQuery(""); 
+    setPage(0)
+    fetchData(0); 
   };
 
-  const fetchData = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
-    if (!hasMore && !shouldRefresh) return;
-
+  const fetchData = useCallback(async (pageNumber: number) => {
+    if (!hasMore) return;
     try {
       const res = await get(`/v1/post/list`, {page:pageNumber, size});
+      console.log('Post response:', res.data.content);
       const newPosts = res.data.content;
-      
-      if (shouldRefresh) {
+      if (pageNumber === 0) {
         setPosts(newPosts);
       } else {
         setPosts((prevPosts) => [...prevPosts, ...newPosts]);
@@ -55,15 +57,16 @@ const Post = ({ navigation }: any) => {
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
-      setInitialLoading(false);
+      setLoadingDialog(false);
     }
   }, [get, hasMore, size]);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () =>{
     setRefreshing(true);
     setSearchQuery("");
-    fetchData(0, true).then(() => setRefreshing(false));
-  }, [fetchData]);
+    setPage(0);
+    fetchData(0).then(() => setRefreshing(false));
+  };
 
   const handleLoadMore = () => {
     if (hasMore && !loading) {
@@ -72,7 +75,7 @@ const Post = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    fetchData(0, true);
+    fetchData(0);
   }, []);
 
   const renderEmptyComponent = () => (
@@ -92,11 +95,10 @@ const Post = ({ navigation }: any) => {
   );
 
   return (
-
-    <View className="flex-1">
-    {initialLoading && <LoadingDialog isVisible={initialLoading} />}
-  
-    <View style={styles.searchContainer}>
+    <View style={styles.container}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
+    
+      <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
           <TextInput
@@ -118,32 +120,25 @@ const Post = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-    <FlatList
-      data={posts}
-      keyExtractor={(item, index) => `${item._id}-${index}`}
-      style={styles.listContainer}
-      renderItem={renderItem}
-      refreshing={refreshing}
-      onRefresh={handleRefresh}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListEmptyComponent={renderEmptyComponent}
-      ListFooterComponent={() => 
-        loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
-      }
-    
-    />
-  </View>
+      <FlatList
+        data={posts}
+        keyExtractor={(item, index) => `${item._id} - ${index}`}
+        renderItem={renderItem}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={renderEmptyComponent}
+        ListFooterComponent={() => 
+          loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
+        }
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-  },
-  listContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
@@ -185,11 +180,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
-  searchButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -202,7 +192,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-
 
 export default Post;
