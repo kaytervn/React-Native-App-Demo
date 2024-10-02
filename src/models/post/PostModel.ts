@@ -1,10 +1,13 @@
-import { User } from "../user/User";
+import { UserModel } from "../user/UserModel";
 
 export type PostModel = {
-  _id: string;
-  content: string | null;
-  imageUrl: string | null;
-  likes: number;
-  comments: number;
-  user: User;
+  _id: string
+  createdAt: string
+  updatedAt: string
+  content: string | null
+  imageUrl: string | null
+  user: UserModel
+  totalReactions: number,
+  totalComments: number
+
 }

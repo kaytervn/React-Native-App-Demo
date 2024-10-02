@@ -64,7 +64,6 @@ const useFetch = () => {
       if (method === "GET" && bodyOrParams) {
         queryString = `?${new URLSearchParams(bodyOrParams).toString()}`;
       }
-
       return fetchData(endpoint + queryString, {
         method,
         body: method !== "GET" ? bodyOrParams : undefined,
