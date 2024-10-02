@@ -5,6 +5,7 @@ import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
+import SearchBar from '@/src/components/search/SearchBar';
 
 const Post = ({ navigation }: any) => {
   const { get, loading } = useFetch();
@@ -46,6 +47,7 @@ const Post = ({ navigation }: any) => {
   };
 
   const clearSearch = () => {
+    setLoadingDialog(true)
     setSearchQuery("");
     setPage(0);
     fetchData(0);
@@ -128,27 +130,14 @@ const Post = ({ navigation }: any) => {
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
     
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search posts..."
-            placeholderTextColor="#fff"
-            style={styles.searchInput}
-            onSubmitEditing={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
-          <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onSubmitEditing={handleSearch}
+        onSearch={handleSearch}
+        placeholder="Tìm kiếm bài đăng..."
+        handleClear={clearSearch}      
+        />
 
       <View style={styles.tabContainer}>
         {tabs.map((tab, index) => (
@@ -196,7 +185,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#059BF0',
+    backgroundColor: 'rgba(237, 247, 255, 0.15)',
     borderRadius: 25,
     paddingHorizontal: 12,
     elevation: 2,

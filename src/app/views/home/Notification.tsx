@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
   notificationItem: {
     backgroundColor: "#ffffff",
     paddingHorizontal:15,
-    
     flexDirection: "row",
     alignItems: "center",
   },
