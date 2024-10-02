@@ -6,7 +6,8 @@ const EmailPattern =
 
 const PhonePattern = /^0[35789][0-9]{8}$/;
 
-const remoteUrl = "https://realtime-chat-app-api-tbaf.onrender.com";
+// const remoteUrl = "https://realtime-chat-app-api-tbaf.onrender.com";
+const remoteUrl = "http://192.168.43.138:7978";
 
 const Stack = createNativeStackNavigator<{
   Loading: any;
@@ -19,8 +20,8 @@ const Stack = createNativeStackNavigator<{
   Profile: any;
   EditProfile: any;
   ChangePassword: any;
-  PostDetail:any;
-  Post:any;
+  PostDetail: any;
+  Post: any;
 }>();
 
 const Tab = createBottomTabNavigator();

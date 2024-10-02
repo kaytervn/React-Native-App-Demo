@@ -18,7 +18,7 @@ const ChangePassword = ({ navigation, route }: any) => {
   const validate = (form: any) => {
     const newErrors: any = {};
     if (!form.currentPassword.trim()) {
-      newErrors.otp = "Mật khẩu hiện tại không được bỏ trống";
+      newErrors.currentPassword = "Mật khẩu hiện tại không được bỏ trống";
     }
     if (!form.newPassword) {
       newErrors.newPassword = "Mật khẩu mới không được bỏ trống";
