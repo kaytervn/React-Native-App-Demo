@@ -19,8 +19,9 @@ const Stack = createNativeStackNavigator<{
   Profile: any;
   EditProfile: any;
   ChangePassword: any;
-  PostDetail: any;
-  Post: any;
+  PostDetail:any;
+  Post:any;
+  PostCreateUpdate:any;
   ChatList: any;
   ChatDetail: any;
 }>();
