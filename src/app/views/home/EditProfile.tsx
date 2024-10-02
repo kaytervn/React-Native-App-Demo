@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, Image, TextInput } from "react-native";
+import { View, TouchableOpacity, Image, TextInput, Text } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Intro from "../../../components/Intro";
@@ -17,6 +17,10 @@ import {
   CameraIcon,
   CircleUserRoundIcon,
   InfoIcon,
+  LockIcon,
+  MailIcon,
+  PhoneIcon,
+  ShieldCheckIcon,
 } from "lucide-react-native";
 import DefaultUser from "../../../assets/user_icon.png";
 import { LoadingDialog } from "@/src/components/Dialog";
@@ -24,16 +28,34 @@ import useFetch from "../../hooks/useFetch";
 import Toast from "react-native-toast-message";
 import { errorToast } from "@/src/types/toast";
 import dayjs from "dayjs";
+import { EmailPattern, PhonePattern } from "@/src/types/constant";
 
 const EditProfile = ({ navigation }: any) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [image, setImage] = useState(null);
+  const [changePassword, setChangePassword] = useState(false);
   const { get, put, post, loading } = useFetch();
 
   const validate = (form: any) => {
     const newErrors: any = {};
     if (!form.displayName)
       newErrors.displayName = "Tên hiển thị không được bỏ trống";
+    if (!form.email.trim()) {
+      newErrors.email = "Email không được bỏ trống";
+    } else if (!EmailPattern.test(form.email)) {
+      newErrors.email = "Email không hợp lệ";
+    }
+    if (!form.phone) {
+      newErrors.phone = "Số điện thoại không được bỏ trống";
+    } else if (!PhonePattern.test(form.phone)) {
+      newErrors.phone = "Số điện thoại không hợp lệ";
+    }
+    if (changePassword) {
+      if (!form.password || form.password.length < 6)
+        newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+      if (form.confirmPassword !== form.password)
+        newErrors.confirmPassword = "Mật khẩu xác nhận không trùng khớp";
+    }
     return newErrors;
   };
 
@@ -42,11 +64,13 @@ const EditProfile = ({ navigation }: any) => {
       displayName: "",
       bio: "",
       birthDate: "",
-      avatarUrl: "",
+      avatarUrl: null,
+      email: "",
+      phone: "",
+      roleId: null,
+      password: null,
     },
-    {
-      displayName: "",
-    },
+    {},
     validate
   );
 
@@ -56,6 +80,8 @@ const EditProfile = ({ navigation }: any) => {
       setForm({
         ...res.data,
         birthDate: res.data.birthDate ? getDate(res.data.birthDate) : null,
+        roleId: res.data.role._id,
+        password: null,
       });
     };
     fetchData();
@@ -83,14 +109,17 @@ const EditProfile = ({ navigation }: any) => {
   const handleSubmit = async () => {
     if (isValidForm()) {
       try {
-        let updatedForm = { ...form };
+        let updatedForm = {
+          ...form,
+          password: changePassword ? form.password : null,
+        };
         if (form.birthDate) {
           updatedForm.birthDate = form.birthDate + " 07:00:00";
         }
         if (image) {
           updatedForm.avatarUrl = await uploadImage(image, post);
         }
-        const res = await put("/v1/user/update-profile", updatedForm);
+        const res = await put("/v1/user/update", updatedForm);
         if (res.result) {
           navigation.goBack();
         } else {
@@ -99,6 +128,8 @@ const EditProfile = ({ navigation }: any) => {
       } catch (error: any) {
         Toast.show(errorToast(error.message));
       }
+    } else {
+      Toast.show(errorToast("Vui lòng kiểm tra lại thông tin"));
     }
   };
 
@@ -123,7 +154,7 @@ const EditProfile = ({ navigation }: any) => {
             />
             <TouchableOpacity
               onPress={pickImage}
-              className="absolute bottom-0 right-0 bg-white rounded-full p-2"
+              className="absolute bottom-0 right-0 bg-white rounded-full p-2 border-2 border-gray-300"
             >
               <CameraIcon size={30} color="royalblue" />
             </TouchableOpacity>
@@ -151,6 +182,28 @@ const EditProfile = ({ navigation }: any) => {
       />
 
       <InputField
+        title="Email"
+        isRequire={true}
+        placeholder="Nhập địa chỉ email"
+        onChangeText={(value: any) => handleChange("email", value)}
+        keyboardType="email-address"
+        value={form.email}
+        icon={MailIcon}
+        error={errors.email}
+      />
+
+      <InputField
+        title="Số điện thoại"
+        isRequire={true}
+        placeholder="Nhập số điện thoại"
+        onChangeText={(value: any) => handleChange("phone", value)}
+        keyboardType="numeric"
+        value={form.phone}
+        icon={PhoneIcon}
+        error={errors.phone}
+      />
+
+      <InputField
         title="Ngày sinh"
         isRequire={false}
         placeholder="Chọn ngày sinh của bạn"
@@ -171,6 +224,57 @@ const EditProfile = ({ navigation }: any) => {
           maximumDate={new Date()}
         />
       )}
+      <View className="space-y-4 items-end">
+        <View className="flex items-center justify-end">
+          <TouchableOpacity
+            className="flex items-center space-x-2 flex-row"
+            onPress={() => {
+              setChangePassword(!changePassword);
+            }}
+          >
+            <View
+              className={`w-10 h-4 flex rounded-full p-0.5 duration-300 ease-in-out mt-1 ${
+                changePassword ? "bg-blue-600" : "bg-gray-300"
+              }`}
+            >
+              <View
+                className={`bg-white w-3 h-3 rounded-full shadow-md transform duration-300 ease-in-out ${
+                  changePassword ? "translate-x-6" : ""
+                }`}
+              />
+            </View>
+            <Text className={`text-base font-semibold`}>Đổi mật khẩu</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {changePassword && (
+        <View className="border border-gray-200 rounded-lg p-4 space-y-4 mt-4">
+          <InputField
+            title="Mật khẩu mới"
+            isRequire={true}
+            placeholder="Nhập mật khẩu mới"
+            onChangeText={(value: any) => handleChange("password", value)}
+            value={form.password}
+            icon={LockIcon}
+            secureTextEntry={true}
+            error={errors.password}
+          />
+          <InputField
+            title="Xác nhận mật khẩu"
+            isRequire={true}
+            placeholder="Nhập mật khẩu xác nhận"
+            onChangeText={(value: any) =>
+              handleChange("confirmPassword", value)
+            }
+            value={form.confirmPassword}
+            icon={ShieldCheckIcon}
+            secureTextEntry={true}
+            error={errors.confirmPassword}
+          />
+        </View>
+      )}
+
       <Button title="LƯU" color="royalblue" onPress={handleSubmit} />
     </Intro>
   );

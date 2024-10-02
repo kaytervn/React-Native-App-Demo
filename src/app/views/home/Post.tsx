@@ -1,66 +1,108 @@
-import { View, Text, FlatList, TextInput, Button, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
-import useDialog from "../../hooks/useDialog";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
+import SearchBar from '@/src/components/search/SearchBar';
+import { Send } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import EmptyComponent from '@/src/components/empty/EmptyComponent';
 
-const Post = () => {
-
-  const { isDialogVisible, showDialog, hideDialog } = useDialog();
+const Post = ({ navigation }: any) => {
   const { get, loading } = useFetch();
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState<PostModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState(0);
-
+  const [activeTab, setActiveTab] = useState(0);
+  const isInitialMount = useRef(true);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const size = 4;
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const avatar = await AsyncStorage.getItem("userAvatar");
+        console.log(userAvatar)
+        const name = await AsyncStorage.getItem("userName");
+        setUserAvatar(avatar);
+        setUserName(name);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+    fetchData(0);
+  }, []);
+
+  const tabs = [
+    { title: "Cộng đồng", getMyPosts: 0, getMyFriendPosts: 0 },
+    { title: "Bạn bè", getMyPosts: 0, getMyFriendPosts: 1 },
+    { title: "Tôi", getMyPosts: 1, getMyFriendPosts: 0 },
+  ];
+
   const handleSearch = async () => {
-    if (searchQuery.trim()) {
-      const res = await get(`/v1/post/list?content=${searchQuery}`);
+    setLoadingDialog(true);
+    try {
+      const res = await get(`/v1/post/list`, {
+        content: searchQuery.trim(),
+        page: 0,
+        size,
+        getMyPosts: tabs[activeTab].getMyPosts,
+        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
+      });
       setPosts(res.data.content);
-    } else {
-      fetchData(0, true); // Reset to default list if search is empty
+      setHasMore(true);
+      setPage(0);
+    } catch (error) {
+      console.error('Error searching posts:', error);
+    } finally {
+      setLoadingDialog(false);
     }
   };
 
   const clearSearch = () => {
+    setLoadingDialog(true)
     setSearchQuery("");
-    fetchData(0, true); // Reset the post list when clearing the search
+    setPage(0);
+    fetchData(0);
   };
 
-  const fetchData = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
-    if (!hasMore && !shouldRefresh) return;
-
+  const fetchData = useCallback(async (pageNumber: number) => {
+    if (!hasMore && pageNumber !== 0) return;
     try {
-      const res = await get(`/v1/post/list?page=${pageNumber}&size=${size}`);
+      const res = await get(`/v1/post/list`, {
+        page: pageNumber,
+        size,
+        getMyPosts: tabs[activeTab].getMyPosts,
+        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
+      });
       const newPosts = res.data.content;
-      
-      if (shouldRefresh) {
+      if (pageNumber === 0) {
         setPosts(newPosts);
       } else {
         setPosts((prevPosts) => [...prevPosts, ...newPosts]);
       }
-
       setHasMore(newPosts.length === size);
       setPage(pageNumber);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
-      setInitialLoading(false);
+      setLoadingDialog(false);
     }
-  }, [get, hasMore, size]);
+  }, [get, hasMore, size, activeTab]);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     setRefreshing(true);
-
-    fetchData(0, true).then(() => setRefreshing(false));
-  }, [fetchData]);
+    setSearchQuery("");
+    setPage(0);
+    fetchData(0).then(() => setRefreshing(false));
+  };
 
   const handleLoadMore = () => {
     if (hasMore && !loading) {
@@ -68,65 +110,101 @@ const Post = () => {
     }
   };
 
+  const handleTabChange = (index: number) => {
+    setActiveTab(index);
+    setPage(0);
+    setSearchQuery("");
+    setHasMore(true);
+    setPosts([]);
+  };
+
   useEffect(() => {
-    fetchData(0, true);
-  }, []);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      fetchData(0);
+    }
+  }, [activeTab]);
+
+
+
+  const renderItem = ({ item }: { item: PostModel }) => (
+    <TouchableOpacity
+      onPress={() => 
+        navigation.navigate("PostDetail", {postId:item._id})
+      } 
+    >
+      <PostItem post={item} />
+    </TouchableOpacity>
+  );
 
   return (
+    <View style={styles.container}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
     
-    <View className="flex-1">
-    {initialLoading && <LoadingDialog isVisible={initialLoading} />}
-  
-    <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search posts..."
-            placeholderTextColor="#999"
-            style={styles.searchInput}
-            onSubmitEditing={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
-          <Ionicons name="search" size={24} color="#fff" />
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onSubmitEditing={handleSearch}
+        onSearch={handleSearch}
+        placeholder="Tìm kiếm bài đăng..."
+        handleClear={clearSearch}      
+        />
+
+      <View style={styles.tabContainer}>
+        {tabs.map((tab, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.tab, activeTab === index && styles.activeTab]}
+            onPress={() => handleTabChange(index)}
+          >
+            <Text style={[styles.tabText, activeTab === index && styles.activeTabText]}>
+              {tab.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.inputCreatePost}>
+        <Image
+          source={{ uri: userAvatar || undefined }}
+          style={styles.avatar}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Bạn đang nghĩ gì?"
+          editable={false}
+        />
+        <TouchableOpacity style={styles.sendButton}>
+          <Send size={20} color="#059BF0" />
         </TouchableOpacity>
       </View>
 
-    <FlatList
-      data={posts}
-      keyExtractor={(item) => item._id}
-      style={styles.listContainer}
-      renderItem={({ item }) => <PostItem post={item} />}
-      refreshing={refreshing}
-      onRefresh={handleRefresh}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={() => 
-        loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
-      }
-    
-    />
-  </View>
+      
+
+      <FlatList
+        data={posts}
+        keyExtractor={(item, index) => `${item._id} - ${index}`}
+        renderItem={renderItem}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={EmptyComponent}
+        ListFooterComponent={() => 
+          loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
+        }
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  listContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
+  //search
   searchContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -137,7 +215,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(237, 247, 255, 0.15)',
     borderRadius: 25,
     paddingHorizontal: 12,
     elevation: 2,
@@ -148,30 +226,92 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+    color: '#fff',
   },
   searchInput: {
     flex: 1,
     height: 40,
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
+    tintColor: '#fff',
   },
   clearButton: {
     padding: 4,
   },
   searchButton: {
     marginLeft: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#059BF0',
     borderRadius: 25,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
-  searchButtonText: {
-    color: '#fff',
+  //emptyList
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#999',
+    textAlign: 'center',
+  },
+  //Tab
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#059BF0',
+  },
+  tabText: {
     fontSize: 16,
+    color: '#333',
+  },
+  activeTabText: {
+    color: '#059BF0',
     fontWeight: 'bold',
   },
+  //Search
+  inputCreatePost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 30,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginVertical: 15,
+    marginHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    elevation: 3,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 20,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  sendButton: {
+    padding: 5,
+  },
 });
-
-
 
 export default Post;

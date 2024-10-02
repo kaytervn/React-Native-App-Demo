@@ -1,21 +1,55 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import useFetch from '../../hooks/useFetch';
 import { PostModel } from '@/src/models/post/PostModel';
 import { Ionicons } from '@expo/vector-icons';
 
-const PostItem = ({ post }: { post: PostModel }) => {
 
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.totalReactions || 0);
+const PostDetail = ({ navigation, route }: any) => {
+  const { get, loading } = useFetch();
+  const [post, setPost] = useState<PostModel | null>(null);
+  const postId = route.params.postId
+  console.log(route.params.postId)
+  // const postId = route.params.postId;
 
-  const handleLike = () => {
-    if (liked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
+  const fetchPostDetail = useCallback(async() => {
+    try {
+      const res = await get(`/v1/post/get/${postId}`);
+      console.log(res.data)
+      setPost(res.data);
+    } catch (error) {
+      console.error('Error fetching post details:', error);
     }
-    setLiked(!liked);
-  };
+  }, [get]);
+
+  useEffect(() => {
+    fetchPostDetail();
+  },[]);
+
+  // const handleLike = () => {
+  //   if (liked) {
+  //     ;
+  //   } else {
+  //     setLikeCount(likeCount + 1);
+  //   }
+  //   setLiked(!liked);
+  // };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (!post) {
+    return (
+      <View style={styles.container}>
+        <Text>Post not found</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -27,7 +61,7 @@ const PostItem = ({ post }: { post: PostModel }) => {
         />
         <View style={styles.nameTimeContainer}>
           <Text style={styles.userName}>{post.user.displayName}</Text>
-          <Text style={styles.timeAgo}>{post.updatedAt}</Text>
+          <Text style={styles.timeAgo}>2 hours ago</Text>
         </View>
       </View>
 
@@ -36,23 +70,30 @@ const PostItem = ({ post }: { post: PostModel }) => {
 
       {/* Post Image (if available) */}
       {post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
+        <Image
+         source={{ uri: post.imageUrl }} style={styles.postImage} />
       )}
 
       {/* Like and Comment Count */}
       <View style={styles.statsContainer}>
-        <Text style={styles.statsText}>{post.totalReactions} Likes • {post.totalComments || 0} Comments</Text>
+        <Text style={styles.statsText}>{post.likes} Likes • {post.comments || 0} Comments</Text>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <Ionicons
+        <TouchableOpacity style={styles.actionButton} >
+        <Ionicons
+            name={'heart'}
+            size={24}
+            color={'#e74c3c'}
+          />
+          {/* <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={24}
             color={liked ? '#e74c3c' : '#7f8c8d'}
-          />
-          <Text style={[styles.actionText, liked && styles.likedText]}>Like</Text>
+          /> */}
+          <Text style={[styles.actionText]}>Like</Text>
+          {/* <Text style={[styles.actionText, liked && styles.likedText]}>Like</Text> */}
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={24} color="#7f8c8d" />
@@ -68,8 +109,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 4,
     padding: 10,
-    marginBottom: 5,
-    
+    marginBottom: 10,
+    marginHorizontal: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   userInfo: {
     flexDirection: 'row',
@@ -133,6 +179,11 @@ const styles = StyleSheet.create({
   likedText: {
     color: '#e74c3c',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
-export default PostItem
+export default PostDetail;

@@ -11,6 +11,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import EditProfle from "./views/home/EditProfile";
 import Profile from "./views/home/Profile";
 import ChangePassword from "./views/home/ChangePassword";
+import PostDetail from "./views/post/PostDetail";
+import Post from "./views/home/Post";
+import PostAll from "./views/post/PostAll";
+import PostSelf from "./views/post/PostSelf";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -26,6 +30,9 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="EditProfile" component={EditProfle} />
     <Stack.Screen name="Profile" component={Profile} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
+    <Stack.Screen name="Post" component={Post} />
+    <Stack.Screen name="PostDetail" component={PostDetail} />
+
   </Stack.Navigator>
 );
 

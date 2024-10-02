@@ -14,8 +14,10 @@ import { remoteUrl } from "@/src/types/constant";
 import Toast from "react-native-toast-message";
 import { errorToast } from "@/src/types/toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import useFetch from "../hooks/useFetch";
 
 const Login = ({ navigation }: any) => {
+  const { get, loading } = useFetch();
   const [showPassword, setShowPassword] = useState(false);
   const { isLoading, showLoading, hideLoading } = useLoading();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
@@ -69,6 +71,9 @@ const Login = ({ navigation }: any) => {
         const data = await response.json();
         if (response.ok) {
           await AsyncStorage.setItem("accessToken", data.data.accessToken);
+          const profile = await get(`/v1/user/profile`) 
+          await AsyncStorage.setItem("userAvatar", profile.data.avatarUrl)
+          await AsyncStorage.setItem("userName", profile.data.displayName)
           navigation.dispatch(
             CommonActions.reset({
               index: 0,

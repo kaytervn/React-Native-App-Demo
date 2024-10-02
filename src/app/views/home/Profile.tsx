@@ -1,4 +1,4 @@
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, Touchable, TouchableOpacity } from "react-native";
 import React, { useEffect, useState } from "react";
 import Intro from "@/src/components/Intro";
 import {
@@ -7,16 +7,16 @@ import {
   LogOutIcon,
   PencilIcon,
   PhoneIcon,
-  LockIcon,
+  ShieldCheckIcon,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import UserIcon from "@/src/assets/user_icon.png"
+import UserIcon from "@/src/assets/user_icon.png";
 import Button from "@/src/components/Button";
 import InfoItem from "@/src/components/InfoItem";
 import { ConfimationDialog, LoadingDialog } from "@/src/components/Dialog";
 import useDialog from "../../hooks/useDialog";
 import useFetch from "../../hooks/useFetch";
-import { dateToString, getDate } from "@/src/types/utils";
+import { getDate } from "@/src/types/utils";
 
 const Profile = ({ navigation }: any) => {
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
@@ -28,6 +28,7 @@ const Profile = ({ navigation }: any) => {
     birthDate: "Đang tải",
     bio: "Đang tải",
     avatarUrl: null,
+    role: { name: "Đang tải" },
   });
   const fetchData = async () => {
     const res = await get("/v1/user/profile");
@@ -43,6 +44,8 @@ const Profile = ({ navigation }: any) => {
   const handleLogout = () => {
     hideDialog();
     AsyncStorage.removeItem("accessToken");
+    AsyncStorage.removeItem("userAvatar")
+    AsyncStorage.removeItem("userName")
     navigation.navigate("Home");
     navigation.navigate("Login");
   };
@@ -63,9 +66,11 @@ const Profile = ({ navigation }: any) => {
             source={profile.avatarUrl ? { uri: profile.avatarUrl } : UserIcon}
             className="w-32 h-32 rounded-full"
           />
-          <Text className="text-2xl font-bold text-white mt-2">
-            {profile.displayName}
-          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("EditProfile")}>
+            <Text className="text-2xl font-bold text-white mt-2">
+              {profile.displayName} <PencilIcon size={24} color={"white"} />
+            </Text>
+          </TouchableOpacity>
           <Text className="text-lg text-gray-200">{profile.email}</Text>
         </View>
       }
@@ -86,26 +91,11 @@ const Profile = ({ navigation }: any) => {
           label="Ngày Sinh"
           value={profile.birthDate}
         />
-      </View>
-      <View className="flex flex-row justify-between">
-        <View className="w-1/2 pr-2">
-          <Button
-            className="w-full"
-            icon={PencilIcon}
-            title="CHỈNH SỬA"
-            color="royalblue"
-            onPress={() => navigation.navigate("EditProfile")}
-          />
-        </View>
-        <View className="w-1/2  pl-2">
-          <Button
-            className="w-full"
-            icon={LockIcon}
-            title="ĐỔI MẬT KHẨU"
-            color="green"
-            onPress={() => navigation.navigate("ChangePassword")}
-          />
-        </View>
+        <InfoItem
+          icon={<ShieldCheckIcon size={24} color="royalblue" />}
+          label="Vai trò"
+          value={profile.role.name}
+        />
       </View>
 
       <Button
