@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 import SearchBar from '@/src/components/search/SearchBar';
+import { Send } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import EmptyComponent from '@/src/components/empty/EmptyComponent';
 
 const Post = ({ navigation }: any) => {
   const { get, loading } = useFetch();
@@ -17,8 +20,25 @@ const Post = ({ navigation }: any) => {
   const [page, setPage] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const isInitialMount = useRef(true);
-
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const size = 4;
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const avatar = await AsyncStorage.getItem("userAvatar");
+        console.log(userAvatar)
+        const name = await AsyncStorage.getItem("userName");
+        setUserAvatar(avatar);
+        setUserName(name);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+    fetchData(0);
+  }, []);
 
   const tabs = [
     { title: "Cộng đồng", getMyPosts: 0, getMyFriendPosts: 0 },
@@ -106,15 +126,7 @@ const Post = ({ navigation }: any) => {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    fetchData(0);
-  }, []);
 
-  const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No posts found</Text>
-    </View>
-  );
 
   const renderItem = ({ item }: { item: PostModel }) => (
     <TouchableOpacity
@@ -153,6 +165,23 @@ const Post = ({ navigation }: any) => {
         ))}
       </View>
 
+      <View style={styles.inputCreatePost}>
+        <Image
+          source={{ uri: userAvatar || undefined }}
+          style={styles.avatar}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Bạn đang nghĩ gì?"
+          editable={false}
+        />
+        <TouchableOpacity style={styles.sendButton}>
+          <Send size={20} color="#059BF0" />
+        </TouchableOpacity>
+      </View>
+
+      
+
       <FlatList
         data={posts}
         keyExtractor={(item, index) => `${item._id} - ${index}`}
@@ -161,7 +190,7 @@ const Post = ({ navigation }: any) => {
         onRefresh={handleRefresh}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={renderEmptyComponent}
+        ListEmptyComponent={EmptyComponent}
         ListFooterComponent={() => 
           loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
         }
@@ -175,6 +204,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  //search
   searchContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -215,6 +245,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
+  //emptyList
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -226,15 +257,16 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
+  //Tab
   tabContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 5,
     paddingHorizontal: 10,
     backgroundColor: '#fff',
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -249,6 +281,36 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#059BF0',
     fontWeight: 'bold',
+  },
+  //Search
+  inputCreatePost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 30,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginVertical: 15,
+    marginHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    elevation: 3,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 20,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  sendButton: {
+    padding: 5,
   },
 });
 

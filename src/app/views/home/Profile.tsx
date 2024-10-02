@@ -44,6 +44,8 @@ const Profile = ({ navigation }: any) => {
   const handleLogout = () => {
     hideDialog();
     AsyncStorage.removeItem("accessToken");
+    AsyncStorage.removeItem("userAvatar")
+    AsyncStorage.removeItem("userName")
     navigation.navigate("Home");
     navigation.navigate("Login");
   };
