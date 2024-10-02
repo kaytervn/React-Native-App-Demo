@@ -7,7 +7,7 @@ const EmailPattern =
 const PhonePattern = /^0[35789][0-9]{8}$/;
 
 // const remoteUrl = "https://realtime-chat-app-api-tbaf.onrender.com";
-const remoteUrl = "http://192.168.201.104:7979";
+const remoteUrl = "http://192.168.68.142:7979";
 const Stack = createNativeStackNavigator<{
   Loading: any;
   Login: any;

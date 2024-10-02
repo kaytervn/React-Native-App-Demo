@@ -3,15 +3,15 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  RefreshControl,
 } from "react-native";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { NotificationModel } from "@/src/models/notification/NotificationModel";
 import NotificationItem from "@/src/components/notification/NotificationItem";
+import HeaderLayout from "@/src/components/header/Header";
+import { Bell, Menu } from "lucide-react-native";
 
 const Notification = ({ navigation }: any) => {
   const { get, loading } = useFetch();
@@ -85,6 +85,13 @@ const Notification = ({ navigation }: any) => {
 
   return (
     <View className="flex-1">
+     <HeaderLayout 
+        title="Thông báo"
+        showBackButton={false}
+        onBackPress={()=>{}}
+        RightIcon={Menu}
+        onRightIconPress={()=>{}}
+      />
     {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
     <FlatList
       data={notifications}
@@ -99,7 +106,6 @@ const Notification = ({ navigation }: any) => {
       ListFooterComponent={() => 
         loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
       }
- 
       />
     </View>
     

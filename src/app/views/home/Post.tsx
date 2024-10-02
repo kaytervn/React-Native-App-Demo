@@ -135,7 +135,7 @@ const Post = ({ navigation }: any) => {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search posts..."
-            placeholderTextColor="#999"
+            placeholderTextColor="#fff"
             style={styles.searchInput}
             onSubmitEditing={handleSearch}
           />
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#059BF0',
     borderRadius: 25,
     paddingHorizontal: 12,
     elevation: 2,
@@ -207,19 +207,21 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+    color: '#fff',
   },
   searchInput: {
     flex: 1,
     height: 40,
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
+    tintColor: '#fff',
   },
   clearButton: {
     padding: 4,
   },
   searchButton: {
     marginLeft: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#059BF0',
     borderRadius: 25,
     paddingHorizontal: 16,
     justifyContent: 'center',
@@ -238,7 +240,8 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 16,
-    marginHorizontal: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
   },
   tab: {
     flex: 1,
@@ -248,14 +251,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#059BF0',
   },
   tabText: {
     fontSize: 16,
     color: '#333',
   },
   activeTabText: {
-    color: '#007AFF',
+    color: '#059BF0',
     fontWeight: 'bold',
   },
 });
