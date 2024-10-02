@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 const PostItem = ({ post }: { post: PostModel }) => {
 
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.totalReactions || 0);
+  const [likeCount, setLikeCount] = useState(post.totalReactions);
 
   const handleLike = () => {
     if (liked) {
@@ -41,7 +41,7 @@ const PostItem = ({ post }: { post: PostModel }) => {
 
       {/* Like and Comment Count */}
       <View style={styles.statsContainer}>
-        <Text style={styles.statsText}>{post.totalReactions} Likes • {post.totalComments || 0} Comments</Text>
+        <Text style={styles.statsText}>{post.totalReactions} Lượt thích • {post.totalComments} Bình luận</Text>
       </View>
 
       {/* Action Buttons */}
@@ -52,11 +52,11 @@ const PostItem = ({ post }: { post: PostModel }) => {
             size={24}
             color={liked ? '#e74c3c' : '#7f8c8d'}
           />
-          <Text style={[styles.actionText, liked && styles.likedText]}>Like</Text>
+          <Text style={[styles.actionText, liked && styles.likedText]}>Thích</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={24} color="#7f8c8d" />
-          <Text style={styles.actionText}>Comment</Text>
+          <Text style={styles.actionText}>Bình luận</Text>
         </TouchableOpacity>
       </View>
     </View>

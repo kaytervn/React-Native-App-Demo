@@ -138,6 +138,22 @@ const Post = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
+  const renderHeader = () => (
+    <TouchableOpacity 
+      style={styles.inputCreatePost}
+      onPress={() => navigation.navigate("PostCreateUpdate")}
+    >
+      <Image
+        source={{ uri: userAvatar || undefined }}
+        style={styles.avatar}
+      />
+      <Text style={styles.inputPlaceholder}>Bạn đang nghĩ gì?</Text>
+      <View style={styles.sendButton}>
+        <Send size={20} color="#059BF0" />
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
@@ -165,23 +181,6 @@ const Post = ({ navigation }: any) => {
         ))}
       </View>
 
-      <View style={styles.inputCreatePost}>
-        <Image
-          source={{ uri: userAvatar || undefined }}
-          style={styles.avatar}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Bạn đang nghĩ gì?"
-          editable={false}
-        />
-        <TouchableOpacity style={styles.sendButton}>
-          <Send size={20} color="#059BF0" />
-        </TouchableOpacity>
-      </View>
-
-      
-
       <FlatList
         data={posts}
         keyExtractor={(item, index) => `${item._id} - ${index}`}
@@ -190,6 +189,7 @@ const Post = ({ navigation }: any) => {
         onRefresh={handleRefresh}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={renderHeader}
         ListEmptyComponent={EmptyComponent}
         ListFooterComponent={() => 
           loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
@@ -303,6 +303,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 20,
+  },
+  inputPlaceholder: {
+    flex: 1,
+    fontSize: 16,
+    color: '#888',
   },
   input: {
     flex: 1,

@@ -13,8 +13,7 @@ import Profile from "./views/home/Profile";
 import ChangePassword from "./views/home/ChangePassword";
 import PostDetail from "./views/post/PostDetail";
 import Post from "./views/home/Post";
-import PostAll from "./views/post/PostAll";
-import PostSelf from "./views/post/PostSelf";
+import PostCreateUpdate from "./views/post/PostCreateUpdate";
 import ChatList from "./views/chat/ChatList";
 import ChatDetail from "./views/chat/ChatDetail";
 
@@ -34,6 +33,7 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
     <Stack.Screen name="Post" component={Post} />
     <Stack.Screen name="PostDetail" component={PostDetail} />
+    <Stack.Screen name="PostCreateUpdate" component={PostCreateUpdate}/>
     <Stack.Screen name="ChatList" component={ChatList} />
     <Stack.Screen name="ChatDetail" component={ChatDetail} />
   </Stack.Navigator>
