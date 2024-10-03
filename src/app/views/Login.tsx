@@ -71,9 +71,7 @@ const Login = ({ navigation }: any) => {
         const data = await response.json();
         if (response.ok) {
           await AsyncStorage.setItem("accessToken", data.data.accessToken);
-          const profile = await get(`/v1/user/profile`) 
-          await AsyncStorage.setItem("userAvatar", profile.data.avatarUrl)
-          await AsyncStorage.setItem("userName", profile.data.displayName)
+          
           navigation.dispatch(
             CommonActions.reset({
               index: 0,

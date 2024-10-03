@@ -5,7 +5,7 @@ import Register from "./views/Register";
 import Home from "./views/home/Home";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
-import { remoteUrl, Stack } from "../types/constant";
+import { remoteUrl, Stack, StackScreenNames } from "../types/constant";
 import Verify from "./views/Verify";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import EditProfle from "./views/home/EditProfile";
