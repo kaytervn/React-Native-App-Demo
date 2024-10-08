@@ -6,7 +6,7 @@ import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 import SearchBar from '@/src/components/search/SearchBar';
-import { Send } from 'lucide-react-native';
+import { ChevronsLeftRightIcon, Send } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EmptyComponent from '@/src/components/empty/EmptyComponent';
 
@@ -27,11 +27,10 @@ const Post = ({ navigation }: any) => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const avatar = await AsyncStorage.getItem("userAvatar");
-        console.log(userAvatar)
-        const name = await AsyncStorage.getItem("userName");
-        setUserAvatar(avatar);
-        setUserName(name);
+        const res = await get("/v1/user/profile");
+        console.log(res)
+        setUserAvatar(res.data.avatarUrl);
+        // setUserName(profile.data.displayName);
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
@@ -41,9 +40,9 @@ const Post = ({ navigation }: any) => {
   }, []);
 
   const tabs = [
-    { title: "Cộng đồng", getMyPosts: 0, getMyFriendPosts: 0 },
-    { title: "Bạn bè", getMyPosts: 0, getMyFriendPosts: 1 },
-    { title: "Tôi", getMyPosts: 1, getMyFriendPosts: 0 },
+    { title: "Cộng đồng", getListKind: 1 },
+    { title: "Bạn bè", getListKind: 2 },
+    { title: "Tôi", getListKind: 3 },
   ];
 
   const handleSearch = async () => {
@@ -53,8 +52,7 @@ const Post = ({ navigation }: any) => {
         content: searchQuery.trim(),
         page: 0,
         size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
+        getListKind: tabs[activeTab].getListKind,
       });
       setPosts(res.data.content);
       setHasMore(true);
@@ -79,8 +77,7 @@ const Post = ({ navigation }: any) => {
       const res = await get(`/v1/post/list`, {
         page: pageNumber,
         size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
+        getListKind: tabs[activeTab].getListKind,
       });
       const newPosts = res.data.content;
       if (pageNumber === 0) {
@@ -126,15 +123,25 @@ const Post = ({ navigation }: any) => {
     }
   }, [activeTab]);
 
-
+  const handlePostUpdate = (updatedPost: PostModel) => {
+    setPosts((prevPosts) => {
+      console.log("call back update")
+      const index = prevPosts.findIndex(post => post._id === updatedPost._id);
+      if (index !== -1) {
+        const newPosts = [...prevPosts];
+        newPosts[index] = updatedPost;
+        return newPosts;
+      }
+      
+      return prevPosts;
+    });
+  };
 
   const renderItem = ({ item }: { item: PostModel }) => (
     <TouchableOpacity
-      onPress={() => 
-        navigation.navigate("PostDetail", {postId:item._id})
-      } 
+      onPress={() => navigation.navigate("PostDetail", { postId: item._id })}
     >
-      <PostItem post={item} />
+      <PostItem postItem={item} onPostUpdate={handlePostUpdate} />
     </TouchableOpacity>
   );
 
@@ -142,6 +149,7 @@ const Post = ({ navigation }: any) => {
     <TouchableOpacity 
       style={styles.inputCreatePost}
       onPress={() => navigation.navigate("PostCreateUpdate")}
+      onLongPress={() => {}}
     >
       <Image
         source={{ uri: userAvatar || undefined }}

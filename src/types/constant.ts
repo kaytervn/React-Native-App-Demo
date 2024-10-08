@@ -18,7 +18,7 @@ const Stack = createNativeStackNavigator<{
   Verify: any;
   Profile: any;
   EditProfile: any;
-  ChangePassword: any;
+  ChangePassword: any;j
   PostDetail:any;
   Post:any;
   PostCreateUpdate:any;

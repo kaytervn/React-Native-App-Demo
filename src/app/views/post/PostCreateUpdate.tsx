@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-
+import useFetch from '../../hooks/useFetch';
+import { uploadImage } from '@/src/types/utils';
+import { LoadingDialog } from '@/src/components/Dialog';
+import Toast from 'react-native-toast-message';
+import { errorToast } from "@/src/types/toast";
 const PostCreateUpdate = ({ navigation }: any) => {
+  const { post, loading } = useFetch();
+  const [loadingDialog, setLoadingDialog] = useState(false);
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
 
@@ -21,14 +27,30 @@ const PostCreateUpdate = ({ navigation }: any) => {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async() => {
+    // await post('/v1/post/create', )
+    setLoadingDialog(true)
+    let postBody = {
+      content: content,
+      imageUrl: null
+    }
+    if (content == null || content.trim().length <= 0){
+      Toast.show(errorToast("Nội dung bị trống!"));
+    }
+    if (image) {
+      postBody.imageUrl = await uploadImage(image, post);
+    }
     
-    console.log('Posting:', { content, image });
-    navigation.goBack(); // After posting, navigate back to the feed
+    const res = await post("/v1/post/create", postBody)
+    if (res.result){
+      navigation.goBack();
+    }
+    setLoadingDialog(false)
   };
 
   return (
     <View style={styles.container}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

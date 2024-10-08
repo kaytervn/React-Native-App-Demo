@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AlertCircle, Box } from 'lucide-react-native';
 
-const EmptyComponent = ({ 
+const EmptyComponent= ({ 
   message = 'Dữ liệu trống', 
   icon: Icon = Box, 
   iconSize = 48, 

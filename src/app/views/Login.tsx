@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, BackHandler } from "react-native";
-import { MailIcon, LockIcon } from "lucide-react-native";
+import { MailIcon, LockIcon, User } from "lucide-react-native";
 import InputField from "@/src/components/InputField";
 import Button from "@/src/components/Button";
 import useDialog from "../hooks/useDialog";
@@ -26,7 +26,7 @@ const Login = ({ navigation }: any) => {
   const validate = (form: any) => {
     const newErrors: any = {};
     if (!form.email.trim()) {
-      newErrors.email = "Email không được bỏ trống";
+      newErrors.email = "Tên đăng nhập không được bỏ trống";
     }
     if (!form.password) {
       newErrors.password = "Mật khẩu không được bỏ trống";
@@ -64,7 +64,7 @@ const Login = ({ navigation }: any) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: form.email,
+            username: form.email,
             password: form.password,
           }),
         });
