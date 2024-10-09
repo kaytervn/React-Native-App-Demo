@@ -11,20 +11,31 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
 
   const handleLike = async () => {
     let updatedPost = { ...postItem };
-    if (liked) {
-      const reactResponse = await del(`/v1/post-reaction/delete/${postItem._id}`);
-      if (reactResponse.result) {
+    try {
+      if (liked) {
         updatedPost.isReacted = 0;
-        updatedPost.totalReactions =  likeCount - 1;
+        updatedPost.totalReactions = likeCount - 1;
+        onPostUpdate(updatedPost);
+        const reactResponse = await del(`/v1/post-reaction/delete/${postItem._id}`);
+        console.log("unlike")
+        if (!reactResponse.result) {
+          throw new Error("Failed to unlike");
+        }
+      } else {
+        updatedPost.isReacted = 1;
+        updatedPost.totalReactions = likeCount + 1;
+        onPostUpdate(updatedPost);
+        const reactResponse = await post("/v1/post-reaction/create", { post: postItem._id });
+        console.log("like")
+        if (!reactResponse.result) {
+          throw new Error("Failed to like");
+        }
       }
-    } else {
-      const reactResponse = await post("/v1/post-reaction/create", { post: postItem._id });
-      if (reactResponse.result) {
-          updatedPost.isReacted = 1;
-          updatedPost.totalReactions = likeCount + 1;
-      }
+    } catch (error) {
+      // Revert UI if something goes wrong
+      onPostUpdate(postItem);  // Revert to the original state
+      console.error("Error updating like status:", error);
     }
-    onPostUpdate(updatedPost); 
   };
 
   const renderStatusIcon = () => {
@@ -36,7 +47,10 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
       return <Ionicons name="lock-closed" size={14} color="#7f8c8d" />;
     }
   };
-
+  const handleMenuPress = () => {
+    console.log('Menu icon pressed');
+    // Handle menu actions here, e.g., edit, delete post
+  };
   return (
     <View style={styles.container}>
       <View style={styles.userInfo}>
@@ -51,6 +65,7 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
             <Text style={styles.timeAgo}>{postItem.createdAt}</Text>
           </View>
         </View>
+        
       </View>
 
       <Text style={styles.content}>{postItem.content}</Text>
@@ -79,6 +94,12 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
           <Text style={styles.actionText}>Bình luận</Text>
         </TouchableOpacity>
       </View>
+
+      {postItem.isOwner == 1 && (
+        <TouchableOpacity style={styles.menuIcon} onPress={handleMenuPress}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#7f8c8d" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -157,6 +178,14 @@ const styles = StyleSheet.create({
   },
   likedText: {
     color: '#e74c3c',
+  },
+  menuIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 0,
+    zIndex: 1,
+    paddingHorizontal:20,
+    paddingBottom:10
   },
 });
 

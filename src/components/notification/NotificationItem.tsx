@@ -5,7 +5,7 @@ import { NotificationModel } from '@/src/models/notification/NotificationModel';
 
 const NotificationItem = ({ item }: { item: NotificationModel }) => {
   return (
-    <TouchableOpacity style={[styles.container, item.status ? null : styles.unreadItem]}>
+    <TouchableOpacity style={[styles.container, item.status == 2 ? null : styles.unreadItem]}>
       <View style={styles.iconContainer}>
         <Ionicons name="notifications-outline" size={24} color="#007AFF" />
       </View>
@@ -13,7 +13,7 @@ const NotificationItem = ({ item }: { item: NotificationModel }) => {
         <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
         <Text style={styles.time}>{item.createdAt}</Text>
       </View>
-      {!item.status && <View style={styles.unreadIndicator} />}
+      {!(item.status == 2) && <View style={styles.unreadIndicator} />}
     </TouchableOpacity>
   );
 };

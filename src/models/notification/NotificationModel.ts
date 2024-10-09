@@ -8,5 +8,5 @@ export type NotificationModel = {
   message: string;
   createdAt: string;
   updatedAt: string;
-  status: boolean;
+  status: number;
 }
