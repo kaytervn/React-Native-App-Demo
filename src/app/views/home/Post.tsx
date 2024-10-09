@@ -138,11 +138,9 @@ const Post = ({ navigation }: any) => {
   };
 
   const renderItem = ({ item }: { item: PostModel }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate("PostDetail", { postId: item._id })}
-    >
+    <View>
       <PostItem postItem={item} onPostUpdate={handlePostUpdate} />
-    </TouchableOpacity>
+    </View>
   );
 
   const renderHeader = () => (

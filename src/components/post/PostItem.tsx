@@ -1,13 +1,18 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
-import React, { useState } from 'react'
+import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList, Dimensions, Modal } from 'react-native'
+import React, { useRef, useState } from 'react'
 import { PostModel } from '@/src/models/post/PostModel';
 import { Ionicons } from '@expo/vector-icons';
 import useFetch from '@/src/app/hooks/useFetch';
+const { width, height  } = Dimensions.get('window');
+const imageWidth = width - 20;
 
 const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdate: (post: PostModel) => void }) => {
   const { post, del, loading } = useFetch();
   const liked = postItem.isReacted == 1;
   const likeCount = postItem.totalReactions;
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const fullScreenFlatListRef = useRef(null);
 
   const handleLike = async () => {
     let updatedPost = { ...postItem };
@@ -47,6 +52,76 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
       return <Ionicons name="lock-closed" size={14} color="#7f8c8d" />;
     }
   };
+
+  const handleImagePress = (index: any) => {
+    console.log('Image pressed:', index); // Debugging log
+    setSelectedImageIndex(index);
+    setIsModalVisible(true);
+  };
+
+
+  const renderImageItem = ({ item, index }: any) => (
+    <TouchableOpacity 
+      style={styles.imageContainer} 
+      onPress={() => handleImagePress(index)}
+    >
+      <Image source={{ uri: item }} style={styles.postImage} />
+      {postItem.imageUrls.length > 1 && (
+        <Text style={styles.imageCounter}>{`${index + 1}/${postItem.imageUrls.length}`}</Text>
+      )}
+    </TouchableOpacity>
+  );
+
+  const renderFullScreenImageItem = ({ item, index }: any) => (
+    <View style={styles.fullScreenImageContainer}>
+      <Image 
+        source={{ uri: item }} 
+        style={styles.fullScreenImage} 
+        resizeMode="contain"
+      />
+      {postItem.imageUrls.length > 1 && (
+        <Text style={styles.fullScreenCounter}>
+          {`${index + 1}/${postItem.imageUrls.length}`}
+        </Text>
+      )}
+    </View>
+  );
+
+  const renderFullScreenGallery  = () => (
+    <Modal
+      visible={isModalVisible}
+      transparent={true}
+      onRequestClose={() => setIsModalVisible(false)}
+    >
+      <View style={styles.fullScreenContainer}>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => setIsModalVisible(false)}
+        >
+          <Ionicons name="close" size={30} color="white" />
+        </TouchableOpacity>
+        <FlatList
+          ref={fullScreenFlatListRef}
+          data={postItem.imageUrls}
+          renderItem={renderFullScreenImageItem}
+          keyExtractor={(item, index) => `fullscreen-${index}`}
+          horizontal={true}
+          pagingEnabled={true}
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={selectedImageIndex}
+          getItemLayout={(data, index) => ({
+            length: width,
+            offset: width * index,
+            index,
+          })}
+          onMomentumScrollEnd={(event) => {
+            const newIndex = Math.floor(event.nativeEvent.contentOffset.x / width);
+            setSelectedImageIndex(newIndex);
+          }}
+        />
+      </View>
+    </Modal>
+  );
   const handleMenuPress = () => {
     console.log('Menu icon pressed');
     // Handle menu actions here, e.g., edit, delete post
@@ -71,7 +146,17 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
       <Text style={styles.content}>{postItem.content}</Text>
 
       {postItem.imageUrls.length > 0 && (
-        <Image source={{ uri: postItem.imageUrls[0] }} style={styles.postImage} />
+        <FlatList
+          data={postItem.imageUrls}
+          renderItem={renderImageItem}
+          keyExtractor={(item, index) => `thumbnail-${index}`}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled={true}
+          snapToInterval={imageWidth}
+          decelerationRate="fast"
+          style={styles.imageList}
+        />
       )}
 
       <View style={styles.statsContainer}>
@@ -100,6 +185,8 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
           <Ionicons name="ellipsis-horizontal" size={20} color="#7f8c8d" />
         </TouchableOpacity>
       )}
+
+    {renderFullScreenGallery()}
     </View>
   );
 };
@@ -186,6 +273,61 @@ const styles = StyleSheet.create({
     zIndex: 1,
     paddingHorizontal:20,
     paddingBottom:10
+  },
+
+  //List Image
+  imageList: {
+    marginVertical: 10,
+  },
+  imageContainer: {
+    width: imageWidth,
+    height: 200,
+    marginRight: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  
+  imageCounter: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    color: 'white',
+    padding: 5,
+    borderRadius: 10,
+    fontSize: 12,
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImageContainer: {
+    width: width,
+    height: height,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: width,
+    height: height,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
+  fullScreenCounter: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    color: 'white',
+    padding: 10,
+    borderRadius: 20,
+    fontSize: 16,
   },
 });
 
