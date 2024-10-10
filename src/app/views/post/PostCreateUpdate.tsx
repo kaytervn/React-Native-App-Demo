@@ -45,6 +45,7 @@ const PostCreateUpdate = ({
   const [postItem, setPostItem] = useState<PostModel | null>(null);
 
   useEffect(() => {
+    fetchUserData();
     if (route.params) {
       const { post_id } = route.params;
       if (post_id) {
@@ -52,8 +53,6 @@ const PostCreateUpdate = ({
         setPostId(post_id);
         fetchPostDetails(post_id);
       }
-    } else {
-      fetchUserData();
     }
   }, [route.params]);
 
@@ -155,7 +154,7 @@ const PostCreateUpdate = ({
           }
           postItem.kind = postBody.kind;
           route.params?.onPostUpdate(postItem);
-          Toast.show(successToast("Post updated successfully"))
+          Toast.show(successToast("Cập nhật bài đăng thành công!"))
         } else {
           setLoadingDialog(true)
           route.params?.onRefresh();

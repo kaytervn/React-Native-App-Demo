@@ -17,6 +17,8 @@ import ModalListImageComponent from "./ModalListImageComponent";
 import MenuClick from "./MenuClick";
 import ModalDelete from "./ModalDelete";
 import { LoadingDialog } from "../Dialog";
+import Toast from "react-native-toast-message";
+import { successToast } from "@/src/types/toast";
 const { width, height } = Dimensions.get("window");
 const imageWidth = width - 20;
 
@@ -132,11 +134,13 @@ const PostItem = ({
   };
 
   const handleDeleteConfirm = async () => {
+    setShowDeleteModal(false);
     setLoadingDialog(true)
     try {
       const response = await del(`/v1/post/delete/${postItem._id}`);
       if (response.result) {
         onPostDelete(postItem._id);
+        Toast.show(successToast("Xóa bài đăng thành công!"))
       } else {
         throw new Error("Failed to delete post");
       }
@@ -145,7 +149,6 @@ const PostItem = ({
       Alert.alert("Error", "Failed to delete the post. Please try again.");
     } finally {
       setLoadingDialog(false)
-      setShowDeleteModal(false);
     }
   };
 
