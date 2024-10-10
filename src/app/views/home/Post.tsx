@@ -38,7 +38,6 @@ const Post = ({ navigation, route }: any) => {
     const fetchUserData = async () => {
       try {
         const res = await get("/v1/user/profile");
-        console.log(res);
         setUserAvatar(res.data.avatarUrl);
         // setUserName(profile.data.displayName);
       } catch (error) {
@@ -144,7 +143,7 @@ const Post = ({ navigation, route }: any) => {
 
   const handlePostUpdate = (updatedPost: PostModel) => {
     setPosts((prevPosts) => {
-      console.log("call back update");
+      
       const index = prevPosts.findIndex((post) => post._id === updatedPost._id);
       if (index !== -1) {
         const newPosts = [...prevPosts];
@@ -162,6 +161,7 @@ const Post = ({ navigation, route }: any) => {
         postItem={item}
         onPostUpdate={handlePostUpdate}
         onPostDelete={handlePostDelete}
+        onRefresh={handleRefresh}
         navigation={navigation}
       />
     </View>
@@ -170,7 +170,11 @@ const Post = ({ navigation, route }: any) => {
   const renderHeader = () => (
     <TouchableOpacity
       style={styles.inputCreatePost}
-      onPress={() => navigation.navigate("PostCreateUpdate")}
+      onPress={() => {
+        navigation.navigate("PostCreateUpdate", {
+          onRefresh: handleRefresh
+        });
+      }}
       onLongPress={() => {}}
     >
       <Image source={{ uri: userAvatar || undefined }} style={styles.avatar} />

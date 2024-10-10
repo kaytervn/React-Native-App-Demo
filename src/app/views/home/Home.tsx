@@ -17,6 +17,7 @@ import useDialog from "../../hooks/useDialog";
 import useBackHandler from "../../hooks/useBackHandler";
 import { ConfimationDialog } from "@/src/components/Dialog";
 import { BackHandler } from "react-native";
+import Toast from "react-native-toast-message";
 
 const Home = () => {
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
@@ -111,6 +112,7 @@ const Home = () => {
           }}
         />
       </Tab.Navigator>
+      <Toast />
       <ConfimationDialog
         isVisible={isDialogVisible}
         title="Thoát ứng dụng"

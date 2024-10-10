@@ -1,21 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, ToastAndroid } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import useFetch from '../../hooks/useFetch';
-import { uploadImage } from '@/src/types/utils';
-import { LoadingDialog } from '@/src/components/Dialog';
-import Toast from 'react-native-toast-message';
-import { errorToast } from "@/src/types/toast";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+  ToastAndroid,
+  Animated,
+  Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import useFetch from "../../hooks/useFetch";
+import { getStatusIcon, uploadImage } from "@/src/types/utils";
+import { LoadingDialog } from "@/src/components/Dialog";
+import Toast from "react-native-toast-message";
+import { errorToast, successToast } from "@/src/types/toast";
+import ModalStatus from "@/src/components/post/ModalStatus";
+import PostItem from "@/src/components/post/PostItem";
+import { PostModel } from "@/src/models/post/PostModel";
 
-const PostCreateUpdate = ({ navigation, route }: any) => {
+const { height } = Dimensions.get("window");
+
+const PostCreateUpdate = ({
+  navigation,
+  route,
+}: {
+  navigation: any;
+  route: any;
+}) => {
   const { get, post, put, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  const [status, setStatus] = useState(0);
+  const [status, setStatus] = useState(1);
   const [isUpdating, setIsUpdating] = useState(false);
   const [postId, setPostId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(height));
+  const [postItem, setPostItem] = useState<PostModel | null>(null);
 
   useEffect(() => {
     if (route.params) {
@@ -25,8 +52,21 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
         setPostId(post_id);
         fetchPostDetails(post_id);
       }
+    } else {
+      fetchUserData();
     }
   }, [route.params]);
+
+  const fetchUserData = async () => {
+    try {
+      const res = await get("/v1/user/profile");
+      console.log(res);
+      setUserAvatar(res.data.avatarUrl);
+      setUserName(res.data.displayName);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
   const fetchPostDetails = async (id: string) => {
     setLoadingDialog(true);
@@ -34,6 +74,7 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
       const response = await get(`/v1/post/get/${id}`);
       if (response.result) {
         const postData = response.data;
+        setPostItem(postData);
         setContent(postData.content);
         setImages(postData.imageUrls || []);
         setStatus(postData.kind);
@@ -50,7 +91,6 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
       quality: 1,
     });
 
@@ -65,11 +105,16 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
 
   const handleSubmit = async () => {
     setLoadingDialog(true);
-    let postBody: { id: any, content: string; imageUrls: string[], kind: number } = {
+    let postBody: {
+      id: any;
+      content: string;
+      imageUrls: string[];
+      kind: number;
+    } = {
       id: postId || null,
       content: content,
       imageUrls: [],
-      kind: status
+      kind: status,
     };
 
     if (content.trim() === "" || content.trim().length <= 0) {
@@ -80,11 +125,12 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
 
     if (images.length > 0) {
       for (const image of images) {
-        if (!image.startsWith('http')) {  // Only upload new images
+        if (!image.startsWith("http")) {
+          // Only upload new images
           const uploadResult = await uploadImage(image, post);
           postBody.imageUrls.push(uploadResult);
         } else {
-          postBody.imageUrls.push(image);  // Keep existing image URLs
+          postBody.imageUrls.push(image); // Keep existing image URLs
         }
       }
     }
@@ -96,32 +142,64 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
       } else {
         res = await post("/v1/post/create", postBody);
       }
-      
+
+     
+    
+    
       if (res.result) {
-        ToastAndroid.show(isUpdating ? "Post updated successfully" : "Post created successfully", ToastAndroid.SHORT);
-        navigation.navigate({
-          name: 'Post', 
-          params: { updatedPost: res.data },
-          merge: true,
-        });
+        if (postItem && isUpdating) {
+          // Chỉ cập nhật postItem nếu nó tồn tại (trong trường hợp cập nhật)
+          postItem.content = postBody.content;
+          if (postBody.imageUrls.length > 0) {
+            postItem.imageUrls = postBody.imageUrls;
+          }
+          postItem.kind = postBody.kind;
+          route.params?.onPostUpdate(postItem);
+          Toast.show(successToast("Post updated successfully"))
+        } else {
+          setLoadingDialog(true)
+          route.params?.onRefresh();
+          Toast.show(successToast("Tạo bài đăng thành công!"));
+          setLoadingDialog(false)
+        }
+        navigation.goBack();
+      
       }
     } catch (error) {
       console.error("Error submitting post:", error);
-      errorToast(isUpdating ? "Failed to update post" : "Failed to create post");
+      errorToast(
+        isUpdating ? "Failed to update post" : "Failed to create post"
+      );
     }
     setLoadingDialog(false);
   };
 
-  const renderStatusButton = (value: number, label: string) => (
-    <TouchableOpacity
-      style={[styles.statusButton, status === value && styles.selectedStatusButton]}
-      onPress={() => setStatus(value)}
-    >
-      <Text style={[styles.statusButtonText, status === value && styles.selectedStatusButtonText]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+  const openStatusModal = () => {
+    setIsStatusModalVisible(true);
+  };
+
+  const closeStatusModal = () => {
+    setIsStatusModalVisible(false);
+  };
+
+  const selectStatus = (value: number) => {
+    setStatus(value);
+    closeStatusModal();
+  };
+
+  const getStatusText = (value: number) => {
+    switch (value) {
+      case 1:
+        return "Công khai";
+      case 2:
+        return "Bạn bè";
+      case 3:
+        return "Chỉ mình tôi";
+      default:
+        return "Chọn trạng thái";
+    }
+  };
+
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
@@ -129,19 +207,49 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}</Text>
+        <Text style={styles.headerTitle}>
+          {isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}
+        </Text>
         <TouchableOpacity style={styles.postButton} onPress={handleSubmit}>
-          <Text style={styles.postButtonText}>{isUpdating ? "Cập nhật" : "Đăng"}</Text>
+          <Text style={styles.postButtonText}>
+            {isUpdating ? "Cập nhật" : "Đăng"}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView>
-        {/* Content input */}
-        <View style={styles.statusContainer}>
-          {renderStatusButton(1, "Công khai")}
-          {renderStatusButton(2, "Bạn bè")}
-          {renderStatusButton(3, "Chỉ mình tôi")}
+      <View style={styles.userContainer}>
+        <Image
+          source={{ uri: userAvatar || "https://via.placeholder.com/100" }}
+          style={styles.avatar}
+        />
+        <View>
+          <Text style={styles.userName}>{userName || "User Name"}</Text>
+          <View style={styles.statusButtonContainer}>
+            <TouchableOpacity
+              style={styles.statusButton}
+              onPress={openStatusModal}
+            >
+              <Ionicons
+                name={getStatusIcon(status)}
+                size={18}
+                color="#059BF0"
+                style={styles.statusIcon}
+              />
+              <Text style={styles.statusButtonText}>
+                {getStatusText(status)}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color="#059BF0"
+                style={styles.statusIcon}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
+      </View>
+
+      <ScrollView>
         <TextInput
           style={styles.input}
           placeholder="Bạn đang nghĩ gì?"
@@ -151,14 +259,16 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
         />
 
         {/* Display selected images */}
-        <ScrollView horizontal
-        contentContainerStyle={{ paddingRight: 15 }}
-        style={styles.imageScrollView}>
+        <ScrollView
+          horizontal
+          contentContainerStyle={{ paddingRight: 15 }}
+          style={styles.imageScrollView}
+        >
           {images.map((image, index) => (
             <View key={index} style={styles.imageContainer}>
               <Image source={{ uri: image }} style={styles.image} />
-              <TouchableOpacity 
-                style={styles.removeImageButton} 
+              <TouchableOpacity
+                style={styles.removeImageButton}
                 onPress={() => removeImage(index)}
               >
                 <Ionicons name="close-circle" size={24} color="white" />
@@ -173,6 +283,13 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
           <Text style={styles.addImageText}>Thêm ảnh</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <ModalStatus
+        isVisible={isStatusModalVisible}
+        onClose={closeStatusModal}
+        onSelectStatus={selectStatus}
+        slideAnim={slideAnim}
+      />
     </View>
   );
 };
@@ -180,43 +297,43 @@ const PostCreateUpdate = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   postButton: {
-    backgroundColor: '#059BF0',
+    backgroundColor: "#059BF0",
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
   },
   postButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   input: {
-    padding: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
     fontSize: 16,
     minHeight: 100,
   },
   imageScrollView: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 15,
-    
   },
   imageContainer: {
     marginRight: 10,
-    position: 'relative',
+    position: "relative",
   },
   image: {
     width: 100,
@@ -224,48 +341,74 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   removeImageButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 12,
   },
   addImageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
   },
   addImageText: {
     marginLeft: 10,
-    color: '#059BF0',
+    color: "#059BF0",
     fontSize: 16,
   },
 
-  //status
-  statusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  //User information
+  userContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: "bold",
+    paddingHorizontal: 5,
+  },
+
+  //status
+  statusButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    paddingHorizontal: 5,
+    paddingVertical: 5,
   },
   statusButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F2F5",
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#059BF0',
-  },
-  selectedStatusButton: {
-    backgroundColor: '#059BF0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   statusButtonText: {
-    color: '#059BF0',
+    fontSize: 14,
+    color: "#059BF0",
+    marginHorizontal: 5,
   },
+  statusIcon: {
+    marginHorizontal: 2,
+  },
+  selectedStatusButton: {
+    backgroundColor: "#059BF0",
+  },
+
   selectedStatusButtonText: {
-    color: '#fff',
+    color: "#fff",
   },
-  
 });
 
 export default PostCreateUpdate;

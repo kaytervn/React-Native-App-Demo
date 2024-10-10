@@ -24,11 +24,13 @@ const PostItem = ({
   postItem,
   onPostUpdate,
   onPostDelete,
+  onRefresh,
   navigation,
 }: {
   postItem: PostModel;
   onPostUpdate: (post: PostModel) => void;
   onPostDelete: (postId: string) => void;
+  onRefresh: () => void;
   navigation: any;
 }) => {
   const { post, del, loading } = useFetch();
@@ -93,7 +95,7 @@ const PostItem = ({
       style={styles.imageContainer}
       onPress={() => handleImagePress(index)}
     >
-      <Image source={{ uri: item }} style={styles.postImage} />
+      <Image source={{ uri: item }} style={styles.postImage}/>
       {postItem.imageUrls.length > 1 && (
         <Text style={styles.imageCounter}>{`${index + 1}/${
           postItem.imageUrls.length
@@ -108,7 +110,20 @@ const PostItem = ({
 
   const handleUpdate = () => {
     setShowMenu(false);
-    navigation.navigate("PostCreateUpdate", { post_id: postItem._id });
+    navigation.navigate("PostCreateUpdate", 
+    { 
+      post_id: postItem._id , 
+      onPostUpdate: (updatedPost: PostModel | null) => {
+        if (updatedPost) {
+          handlePostUpdate(updatedPost);
+        }
+      },
+      
+  }, );
+  };
+
+  const handlePostUpdate = (updatedPost: PostModel) => {
+    onPostUpdate(updatedPost);
   };
 
   const handleDeletePress = () => {
@@ -217,7 +232,7 @@ const PostItem = ({
       />
       <ModalDelete
         isVisible={showDeleteModal}
-        title="Xóa bài viết?"
+        title="Bạn sẽ xóa bài viết này chứ?"
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
       />
@@ -266,9 +281,11 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
-    height: 200,
+    height: "100%",
     borderRadius: 8,
     marginBottom: 10,
+    objectFit: "scale-down",
+    backgroundColor: "#f5f5f5",
   },
   statsContainer: {
     flexDirection: "row",

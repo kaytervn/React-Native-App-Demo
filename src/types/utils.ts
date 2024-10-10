@@ -33,4 +33,13 @@ const uploadImage = async (
   return null;
 };
 
-export { dateToString, stringToDate, uploadImage, getDate };
+const getStatusIcon = (value: number) => {
+  switch (value) {
+    case 1: return "globe-outline";
+    case 2: return "people-outline";
+    case 3: return "lock-closed-outline";
+    default: return "ellipsis-horizontal";
+  }
+};
+
+export { dateToString, stringToDate, uploadImage, getDate, getStatusIcon };
