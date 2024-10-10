@@ -1,19 +1,44 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList, Dimensions, Modal } from 'react-native'
-import React, { useRef, useState } from 'react'
-import { PostModel } from '@/src/models/post/PostModel';
-import { Ionicons } from '@expo/vector-icons';
-import useFetch from '@/src/app/hooks/useFetch';
-const { width, height  } = Dimensions.get('window');
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  FlatList,
+  Dimensions,
+  Modal,
+  Alert,
+} from "react-native";
+import React, { useRef, useState } from "react";
+import { PostModel } from "@/src/models/post/PostModel";
+import { Ionicons } from "@expo/vector-icons";
+import useFetch from "@/src/app/hooks/useFetch";
+import ModalListImageComponent from "./ModalListImageComponent";
+import MenuClick from "./MenuClick";
+import ModalDelete from "./ModalDelete";
+import { LoadingDialog } from "../Dialog";
+const { width, height } = Dimensions.get("window");
 const imageWidth = width - 20;
 
-const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdate: (post: PostModel) => void }) => {
+const PostItem = ({
+  postItem,
+  onPostUpdate,
+  onPostDelete,
+  navigation,
+}: {
+  postItem: PostModel;
+  onPostUpdate: (post: PostModel) => void;
+  onPostDelete: (postId: string) => void;
+  navigation: any;
+}) => {
   const { post, del, loading } = useFetch();
   const liked = postItem.isReacted == 1;
   const likeCount = postItem.totalReactions;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const fullScreenFlatListRef = useRef(null);
-
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loadingDialog, setLoadingDialog] = useState(false);
   const handleLike = async () => {
     let updatedPost = { ...postItem };
     try {
@@ -21,8 +46,10 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
         updatedPost.isReacted = 0;
         updatedPost.totalReactions = likeCount - 1;
         onPostUpdate(updatedPost);
-        const reactResponse = await del(`/v1/post-reaction/delete/${postItem._id}`);
-        console.log("unlike")
+        const reactResponse = await del(
+          `/v1/post-reaction/delete/${postItem._id}`
+        );
+        console.log("unlike");
         if (!reactResponse.result) {
           throw new Error("Failed to unlike");
         }
@@ -30,15 +57,17 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
         updatedPost.isReacted = 1;
         updatedPost.totalReactions = likeCount + 1;
         onPostUpdate(updatedPost);
-        const reactResponse = await post("/v1/post-reaction/create", { post: postItem._id });
-        console.log("like")
+        const reactResponse = await post("/v1/post-reaction/create", {
+          post: postItem._id,
+        });
+        console.log("like");
         if (!reactResponse.result) {
           throw new Error("Failed to like");
         }
       }
     } catch (error) {
       // Revert UI if something goes wrong
-      onPostUpdate(postItem);  // Revert to the original state
+      onPostUpdate(postItem); // Revert to the original state
       console.error("Error updating like status:", error);
     }
   };
@@ -54,83 +83,69 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
   };
 
   const handleImagePress = (index: any) => {
-    console.log('Image pressed:', index); // Debugging log
+    console.log("Image pressed:", index); // Debugging log
     setSelectedImageIndex(index);
     setIsModalVisible(true);
   };
 
-
   const renderImageItem = ({ item, index }: any) => (
-    <TouchableOpacity 
-      style={styles.imageContainer} 
+    <TouchableOpacity
+      style={styles.imageContainer}
       onPress={() => handleImagePress(index)}
     >
       <Image source={{ uri: item }} style={styles.postImage} />
       {postItem.imageUrls.length > 1 && (
-        <Text style={styles.imageCounter}>{`${index + 1}/${postItem.imageUrls.length}`}</Text>
+        <Text style={styles.imageCounter}>{`${index + 1}/${
+          postItem.imageUrls.length
+        }`}</Text>
       )}
     </TouchableOpacity>
   );
 
-  const renderFullScreenImageItem = ({ item, index }: any) => (
-    <View style={styles.fullScreenImageContainer}>
-      <Image 
-        source={{ uri: item }} 
-        style={styles.fullScreenImage} 
-        resizeMode="contain"
-      />
-      {postItem.imageUrls.length > 1 && (
-        <Text style={styles.fullScreenCounter}>
-          {`${index + 1}/${postItem.imageUrls.length}`}
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderFullScreenGallery  = () => (
-    <Modal
-      visible={isModalVisible}
-      transparent={true}
-      onRequestClose={() => setIsModalVisible(false)}
-    >
-      <View style={styles.fullScreenContainer}>
-        <TouchableOpacity 
-          style={styles.closeButton} 
-          onPress={() => setIsModalVisible(false)}
-        >
-          <Ionicons name="close" size={30} color="white" />
-        </TouchableOpacity>
-        <FlatList
-          ref={fullScreenFlatListRef}
-          data={postItem.imageUrls}
-          renderItem={renderFullScreenImageItem}
-          keyExtractor={(item, index) => `fullscreen-${index}`}
-          horizontal={true}
-          pagingEnabled={true}
-          showsHorizontalScrollIndicator={false}
-          initialScrollIndex={selectedImageIndex}
-          getItemLayout={(data, index) => ({
-            length: width,
-            offset: width * index,
-            index,
-          })}
-          onMomentumScrollEnd={(event) => {
-            const newIndex = Math.floor(event.nativeEvent.contentOffset.x / width);
-            setSelectedImageIndex(newIndex);
-          }}
-        />
-      </View>
-    </Modal>
-  );
   const handleMenuPress = () => {
-    console.log('Menu icon pressed');
-    // Handle menu actions here, e.g., edit, delete post
+    setShowMenu(!showMenu);
   };
+
+  const handleUpdate = () => {
+    setShowMenu(false);
+    navigation.navigate("PostCreateUpdate", { post_id: postItem._id });
+  };
+
+  const handleDeletePress = () => {
+    setShowMenu(false);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setLoadingDialog(true)
+    try {
+      const response = await del(`/v1/post/delete/${postItem._id}`);
+      if (response.result) {
+        onPostDelete(postItem._id);
+      } else {
+        throw new Error("Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      Alert.alert("Error", "Failed to delete the post. Please try again.");
+    } finally {
+      setLoadingDialog(false)
+      setShowDeleteModal(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.userInfo}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
         <Image
-          source={{ uri: postItem.user.avatarUrl || 'https://via.placeholder.com/40' }}
+          source={{
+            uri: postItem.user.avatarUrl || "https://via.placeholder.com/40",
+          }}
           style={styles.avatar}
         />
         <View style={styles.nameTimeContainer}>
@@ -140,7 +155,6 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
             <Text style={styles.timeAgo}>{postItem.createdAt}</Text>
           </View>
         </View>
-        
       </View>
 
       <Text style={styles.content}>{postItem.content}</Text>
@@ -168,11 +182,13 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
       <View style={styles.actionContainer}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
           <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
+            name={liked ? "heart" : "heart-outline"}
             size={24}
-            color={liked ? '#e74c3c' : '#7f8c8d'}
+            color={liked ? "#e74c3c" : "#7f8c8d"}
           />
-          <Text style={[styles.actionText, liked ? styles.likedText : null]}>Thích</Text>
+          <Text style={[styles.actionText, liked ? styles.likedText : null]}>
+            Thích
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={24} color="#7f8c8d" />
@@ -186,22 +202,39 @@ const PostItem = ({ postItem, onPostUpdate }: { postItem: PostModel, onPostUpdat
         </TouchableOpacity>
       )}
 
-    {renderFullScreenGallery()}
+      <ModalListImageComponent
+        images={postItem.imageUrls}
+        isVisible={isModalVisible}
+        initialIndex={selectedImageIndex}
+        onClose={() => setIsModalVisible(false)}
+      />
+
+      <MenuClick
+        isVisible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onUpdate={handleUpdate}
+        onDelete={handleDeletePress}
+      />
+      <ModalDelete
+        isVisible={showDeleteModal}
+        title="Xóa bài viết?"
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 4,
     padding: 10,
     marginBottom: 5,
-    
   },
   userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   avatar: {
@@ -214,15 +247,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 16,
   },
   statusTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   timeAgo: {
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     fontSize: 12,
     marginLeft: 5,
   },
@@ -232,47 +265,47 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   postImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     borderRadius: 8,
     marginBottom: 10,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   statsText: {
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     fontSize: 12,
   },
   actionContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: '#ecf0f1',
+    borderTopColor: "#ecf0f1",
     paddingTop: 10,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   actionText: {
     marginLeft: 5,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     fontSize: 14,
   },
   likedText: {
-    color: '#e74c3c',
+    color: "#e74c3c",
   },
   menuIcon: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 0,
     zIndex: 1,
-    paddingHorizontal:20,
-    paddingBottom:10
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
 
   //List Image
@@ -284,51 +317,51 @@ const styles = StyleSheet.create({
     height: 200,
     marginRight: 10,
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
-  
+
   imageCounter: {
-    position: 'absolute',
+    position: "absolute",
     right: 10,
     bottom: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    color: 'white',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    color: "white",
     padding: 5,
     borderRadius: 10,
     fontSize: 12,
   },
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'black',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
   },
   fullScreenImageContainer: {
     width: width,
     height: height,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   fullScreenImage: {
     width: width,
     height: height,
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 40,
     right: 20,
     zIndex: 1,
   },
   fullScreenCounter: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 40,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    color: 'white',
+    alignSelf: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    color: "white",
     padding: 10,
     borderRadius: 20,
     fontSize: 16,
   },
 });
 
-export default PostItem
+export default PostItem;
