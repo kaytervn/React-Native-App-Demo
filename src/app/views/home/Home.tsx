@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   MessageCircleMoreIcon,
   BookUserIcon,
@@ -16,20 +16,21 @@ import Notification from "./Notification";
 import useDialog from "../../hooks/useDialog";
 import useBackHandler from "../../hooks/useBackHandler";
 import { ConfimationDialog } from "@/src/components/Dialog";
-import { BackHandler } from "react-native";
+import { BackHandler, View } from "react-native";
 import Toast from "react-native-toast-message";
 
 const Home = () => {
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
+  const [isTabBarVisible, setIsTabBarVisible] = useState(true);
   useBackHandler(showDialog);
   return (
     <>
-      <Tab.Navigator
+     <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarStyle: {
+          tabBarStyle: isTabBarVisible ? {
             borderTopColor: "#ccc",
-          },
+          } : { display: 'none' },
           tabBarActiveTintColor: "royalblue",
           tabBarInactiveTintColor: "#6c757d",
           tabBarShowLabel: false,
@@ -67,7 +68,6 @@ const Home = () => {
         />
         <Tab.Screen
           name="Post"
-          component={Post}
           options={{
             tabBarIcon: ({ color, size, focused }) => (
               <TabIcon
@@ -79,7 +79,10 @@ const Home = () => {
               />
             ),
           }}
-        />
+        >
+          {(props: any) => <Post {...props} setIsTabBarVisible={setIsTabBarVisible} />}
+        </Tab.Screen>
+       
         <Tab.Screen
           name="Notification"
           component={Notification}
@@ -112,6 +115,7 @@ const Home = () => {
           }}
         />
       </Tab.Navigator>
+      
       <Toast />
       <ConfimationDialog
         isVisible={isDialogVisible}

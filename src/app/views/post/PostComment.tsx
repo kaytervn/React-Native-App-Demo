@@ -1,105 +1,92 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState, useRef } from "react";
 import {
   View,
   Text,
-  FlatList,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Image,
-} from 'react-native';
-import { Send, Heart, MessageCircle } from 'lucide-react-native';
-import useFetch from '../../hooks/useFetch';
-import { LoadingDialog } from '@/src/components/Dialog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import EmptyComponent from '@/src/components/empty/EmptyComponent';
-import { CommentModel } from '@/src/models/comment/CommentModel';
-import { PostModel } from '@/src/models/post/PostModel';
+  ActivityIndicator,
+} from "react-native";
+import { BottomSheetModal, BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { Send, Heart, MessageCircle, ImageIcon } from "lucide-react-native";
+import useFetch from "../../hooks/useFetch";
+import { LoadingDialog } from "@/src/components/Dialog";
+import EmptyComponent from "@/src/components/empty/EmptyComponent";
+import { CommentModel } from "@/src/models/comment/CommentModel";
+import { PostModel } from "@/src/models/post/PostModel";
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '@/src/types/utils';
 
 
-const PostComment = ({postItem}: {postItem: PostModel}) => {
+const PostComment= ({ 
+  postItem, 
+  onCommentAdded 
+}: any) => {
   const { get, post, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [comments, setComments] = useState<CommentModel[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
   const [newComment, setNewComment] = useState('');
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalComments, setTotalComments] = useState(postItem.totalComments);
+  const commentSize = 10;
 
-  const size = 10;
-
-  useEffect(() => {
-    fetchUserData();
-    fetchComments(0);
-  }, []);
-
-  const fetchUserData = async () => {
+  const fetchComments = useCallback(async (pageNumber: number) => {
     try {
-      const res = await get('/v1/user/profile');
-      setUserAvatar(res.data.avatarUrl);
+      const res = await get(`/v1/comment/list`, { post: postItem._id, page: pageNumber, size: commentSize, ignoreChildren: 1 });
+      const newComments = res.data.content;
+      setComments(prev => pageNumber === 0 ? newComments : [...prev, ...newComments]);
+      setHasMore(newComments.length === commentSize);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error fetching comments:', error);
+    }
+  }, [get, postItem._id]);
+
+  const handleLoadMoreComments = () => {
+    if (hasMore && !loading) {
+      fetchComments(Math.ceil(comments.length / commentSize));
     }
   };
 
-  const fetchComments = useCallback(async (pageNumber: number) => {
-    if (!hasMore && pageNumber !== 0) return;
-    await getComments(pageNumber);
-  }, [get, hasMore]);
+  const createComment = async () => {
+    if (!newComment.trim() && !selectedImage) return;
 
-  async function getComments(pageNumber: number) {
+    setLoadingDialog(true);
     try {
-      const res = await get(`/v1/comment/list`, { post: postItem._id, ignoreChildren: 1 });
-      const newComments = res.data.content;
-      
-      setComments((prevComments) => {
-        // Create a Set of existing comment IDs
-        const existingIds = new Set(prevComments.map(comment => comment._id));
-        // Filter out any new comments that already exist
-        const uniqueNewComments = newComments.filter((comment: { _id: string; }) => !existingIds.has(comment._id));
-        // If it's the first page, return only new comments, otherwise append to existing
-        return pageNumber === 0 ? uniqueNewComments : [...prevComments, ...uniqueNewComments];
-      });
+      let params = {
+        post: postItem._id,
+        content: newComment,
+        parent: null,
+        imageUrl: ""
+      };
 
-      setHasMore(newComments.length === size);
-      setPage(pageNumber);
+      if (selectedImage) {
+        params.imageUrl = await uploadImage(selectedImage, post);
+      }
+
+      await post(`/v1/comment/create`, params);
+      fetchComments(0);
+      setNewComment('');
+      setSelectedImage(null);
+      setTotalComments(totalComments + 1);
+      onCommentAdded();
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error('Error posting comment:', error);
     } finally {
       setLoadingDialog(false);
     }
-  }
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setPage(0);
-
-    fetchComments(0).then(() => setRefreshing(false));
   };
 
-  const handleLoadMore = () => {
-    if (hasMore && !loading) {
-      fetchComments(page + 1);
-    }
-  };
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
 
-  const handlePostComment = async () => {
-    if (newComment.trim()) {
-      setLoadingDialog(true);
-      try {
-        const res = await post(`/v1/post/${postItem._id}/comment`, { content: newComment.trim() });
-        setComments((prevComments) => [res.data, ...prevComments]);
-        setNewComment('');
-        if (postItem) {
-          postItem.totalComments += 1;
-        }
-      } catch (error) {
-        console.error('Error posting comment:', error);
-      } finally {
-        setLoadingDialog(false);
-      }
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
 
@@ -109,6 +96,17 @@ const PostComment = ({postItem}: {postItem: PostModel}) => {
       <View style={styles.commentContent}>
         <Text style={styles.authorName}>{item.user.displayName}</Text>
         <Text style={styles.commentText}>{item.content}</Text>
+
+        {item.imageUrl && (
+          <View style={styles.imageWrapper}>
+            <Image 
+              source={{ uri: item.imageUrl }} 
+              style={styles.commentImage} 
+              resizeMode="contain"
+            />
+          </View>
+        )}
+
         <View style={styles.commentActions}>
           <TouchableOpacity style={styles.actionButton}>
             <Heart size={16} color="#888" />
@@ -126,43 +124,43 @@ const PostComment = ({postItem}: {postItem: PostModel}) => {
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
-
-      <FlatList
-        data={comments}
-        keyExtractor={(item, index) => `${item._id} - ${index}`}
-        renderItem={renderComment}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListHeaderComponent={() => (
-          <View style={styles.postDetailsContainer}>
+      <View style={styles.postDetailsContainer}>
             <Text style={styles.totalText}>
-              {postItem?.totalReactions} likes · {postItem?.totalComments} comments
+              {postItem.totalReactions} likes · {totalComments} comments
             </Text>
-          </View>
-        )}
-        ListEmptyComponent={<EmptyComponent message="Chưa có bình luận nào" />}
+      </View>
+      <BottomSheetFlatList
+        data={comments}
+        keyExtractor={(item) => item._id}
+        renderItem={renderComment}
+        ListEmptyComponent={<EmptyComponent message="No comments yet" />}
+        onEndReached={handleLoadMoreComments}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={() =>
           loading && hasMore ? (
             <ActivityIndicator size="large" color="#007AFF" />
           ) : null
         }
       />
-
       <View style={styles.inputContainer}>
-        <Image source={{ uri: userAvatar || undefined }} style={styles.avatar} />
+        <Image source={{ uri: postItem.user.ava || undefined }} style={styles.avatar} />
         <TextInput
           style={styles.input}
           value={newComment}
           onChangeText={setNewComment}
-          placeholder="Write a comment..."
+          placeholder="Add a comment..."
           multiline
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handlePostComment}>
+        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+          <ImageIcon size={20} color="#059BF0" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton} onPress={createComment}>
           <Send size={20} color="#059BF0" />
         </TouchableOpacity>
       </View>
+      {selectedImage && (
+        <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+      )}
     </View>
   );
 };
@@ -170,24 +168,6 @@ const PostComment = ({postItem}: {postItem: PostModel}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  postDetailsContainer: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  totalText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  commentContainer: {
-    flexDirection: 'row',
-    padding: 15,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   avatar: {
     width: 40,
@@ -195,9 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
-  commentContent: {
-    flex: 1,
-  },
+
   authorName: {
     fontWeight: 'bold',
     marginBottom: 5,
@@ -223,7 +201,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
@@ -233,8 +210,47 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     fontSize: 16,
   },
-  sendButton: {
+  iconButton: {
     padding: 5,
+    marginLeft: 5,
+  },
+  selectedImage: {
+    width: 100,
+    height: 100,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  commentList: {
+    flexGrow: 1,
+  },
+  postDetailsContainer: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  totalText: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  commentContainer: {
+    flexDirection: 'row',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  commentContent: {
+    flex: 1,
+  },
+  imageWrapper: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    width: "100%", // Adjust based on your layout
+  },
+  commentImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
   },
 });
 

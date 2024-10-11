@@ -29,7 +29,8 @@ const PostItem = ({
   onPostDelete,
   onRefresh,
   navigation,
-  onCommentPress
+  onCommentPress,
+  setIsTabBarVisible
 }: {
   postItem: PostModel;
   onPostUpdate: (post: PostModel) => void;
@@ -37,6 +38,7 @@ const PostItem = ({
   onRefresh: () => void;
   navigation: any;
   onCommentPress: (post: PostModel) => void;
+  setIsTabBarVisible: (visible: boolean) => void;
 }) => {
   const { post, del, loading } = useFetch();
   const liked = postItem.isReacted == 1;
@@ -46,10 +48,7 @@ const PostItem = ({
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-
+  
   const handleLike = async () => {
     let updatedPost = { ...postItem };
     try {
@@ -82,10 +81,10 @@ const PostItem = ({
   };
 
   const handleCommentPress = () => {
+    setIsTabBarVisible(false);
     onCommentPress(postItem);
   };
 
-  
   const renderStatusIcon = () => {
     if (postItem.kind === 1) {
       return <Ionicons name="earth" size={14} color="#7f8c8d" />;

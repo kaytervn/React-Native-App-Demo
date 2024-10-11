@@ -19,11 +19,12 @@ import SearchBar from "@/src/components/search/SearchBar";
 import { ChevronsLeftRightIcon, Send } from "lucide-react-native";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
 import { useFocusEffect } from "expo-router";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import PostComment from "../post/PostComment";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 
-const Post = ({ navigation, route }: any) => {
+const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
   const { get, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +37,7 @@ const Post = ({ navigation, route }: any) => {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<PostModel | null>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const size = 4;
 
   useEffect(() => {
@@ -153,10 +154,22 @@ const Post = ({ navigation, route }: any) => {
     });
   };
 
-  const handleCommentPress = (postItem: PostModel) => {
+  const handleCommentPress = useCallback((postItem: PostModel) => {
     setSelectedPost(postItem);
-    bottomSheetRef.current?.expand();
-  };
+    bottomSheetModalRef.current?.present();
+  }, []);
+
+  const handleCommentAdded = useCallback(() => {
+    if (selectedPost) {
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post._id === selectedPost._id 
+            ? { ...post, totalComments: post.totalComments + 1 } 
+            : post
+        )
+      );
+    }
+  }, [selectedPost]);
 
   const renderItem = ({ item }: { item: PostModel }) => (
     <PostItem
@@ -166,6 +179,7 @@ const Post = ({ navigation, route }: any) => {
       onRefresh={handleRefresh}
       navigation={navigation}
       onCommentPress={handleCommentPress}
+      setIsTabBarVisible={setIsTabBarVisible}
     />
   );
 
@@ -264,22 +278,26 @@ const Post = ({ navigation, route }: any) => {
         }
       />
 
-    <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={["25%","50%", "90%"]}
-        enablePanDownToClose={true}
+    <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={1}
+        snapPoints={["50","92%"]}
         onChange={(index) => {
           if (index === -1) {
             setSelectedPost(null);
+            setIsTabBarVisible(true);
+          } else {
+            setIsTabBarVisible(false);
           }
         }}
       >
         {selectedPost && (
-          <PostComment postItem={selectedPost} />
+          <PostComment
+            postItem={selectedPost}
+            onCommentAdded={handleCommentAdded}
+          />
         )}
-      </BottomSheet>
-
+      </BottomSheetModal>
     </View>
   );
 };
@@ -403,5 +421,15 @@ const styles = StyleSheet.create({
     padding: 5,
   },
 });
+
+const Post = (props: any) => {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <PostContent {...props} />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
+  );
+};
 
 export default Post;

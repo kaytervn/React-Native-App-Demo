@@ -6,7 +6,7 @@ export type CommentModel = {
   post: PostModel
   user: UserModel
   content: string | null
-  imageUrl: string[]
+  imageUrl: string
   createdAt: string
   isOwner: number
   isUpdated: number
