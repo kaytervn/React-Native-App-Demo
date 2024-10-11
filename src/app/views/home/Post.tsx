@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
@@ -56,61 +57,50 @@ const Post = ({ navigation, route }: any) => {
 
   const handleSearch = async () => {
     setLoadingDialog(true);
+    Keyboard.dismiss();
+    await getPosts(0, searchQuery)
+    setLoadingDialog(false);
+  };
+
+  const clearSearch = async () => {
+    setLoadingDialog(true);
+    Keyboard.dismiss();
+    setSearchQuery("");
+    await getPosts(0, "");
+  };
+
+  async function getPosts(pageNumber: number, content: string) {
     try {
       const res = await get(`/v1/post/list`, {
-        content: searchQuery.trim(),
-        page: 0,
+        page: pageNumber,
         size,
         getListKind: tabs[activeTab].getListKind,
+        content: content
       });
-      setPosts(res.data.content);
-      setHasMore(true);
-      setPage(0);
+      const newPosts = res.data.content;
+      setPosts(newPosts);
+      setHasMore(newPosts.length === size);
+      setPage(pageNumber);
     } catch (error) {
-      console.error("Error searching posts:", error);
+      console.error("Error fetching posts:", error);
     } finally {
       setLoadingDialog(false);
     }
-  };
-
-  const clearSearch = () => {
-    setLoadingDialog(true);
-    setSearchQuery("");
-    setPage(0);
-    fetchData(0);
-  };
+  }
 
   const fetchData = useCallback(
     async (pageNumber: number) => {
       if (!hasMore && pageNumber !== 0) return;
-      try {
-        const res = await get(`/v1/post/list`, {
-          page: pageNumber,
-          size,
-          getListKind: tabs[activeTab].getListKind,
-        });
-        const newPosts = res.data.content;
-        if (pageNumber === 0) {
-          setPosts(newPosts);
-        } else {
-          setPosts((prevPosts) => [...prevPosts, ...newPosts]);
-        }
-        setHasMore(newPosts.length === size);
-        setPage(pageNumber);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      } finally {
-        setLoadingDialog(false);
-      }
+      getPosts(pageNumber, searchQuery);
     },
-    [get, hasMore, size, activeTab]
+    [get, size, activeTab]
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
     setSearchQuery("");
     setPage(0);
-    fetchData(0).then(() => setRefreshing(false));
+    getPosts(0, "").then(() => setRefreshing(false));
   };
 
   const handleLoadMore = () => {

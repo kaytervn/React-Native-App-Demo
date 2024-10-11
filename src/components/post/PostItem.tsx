@@ -43,6 +43,7 @@ const PostItem = ({
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
+  
   const handleLike = async () => {
     let updatedPost = { ...postItem };
     try {
@@ -74,6 +75,10 @@ const PostItem = ({
       onPostUpdate(postItem); // Revert to the original state
       console.error("Error updating like status:", error);
     }
+  };
+
+  const handleCommentPress = () => {
+    navigation.navigate('PostComment', { postId: postItem._id });
   };
 
   const renderStatusIcon = () => {
@@ -208,7 +213,7 @@ const PostItem = ({
             Thích
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
           <Ionicons name="chatbubble-outline" size={24} color="#7f8c8d" />
           <Text style={styles.actionText}>Bình luận</Text>
         </TouchableOpacity>

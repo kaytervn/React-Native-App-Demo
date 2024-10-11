@@ -16,6 +16,7 @@ import Post from "./views/home/Post";
 import PostCreateUpdate from "./views/post/PostCreateUpdate";
 import ChatList from "./views/chat/ChatList";
 import ChatDetail from "./views/chat/ChatDetail";
+import PostComment from "./views/post/PostComment";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -36,6 +37,7 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="PostCreateUpdate" component={PostCreateUpdate}/>
     <Stack.Screen name="ChatList" component={ChatList} />
     <Stack.Screen name="ChatDetail" component={ChatDetail} />
+    <Stack.Screen name="PostComment" component={PostComment} />
   </Stack.Navigator>
 );
 
