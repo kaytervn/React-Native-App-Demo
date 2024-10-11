@@ -17,9 +17,11 @@ import PostCreateUpdate from "./views/post/PostCreateUpdate";
 import ChatList from "./views/chat/ChatList";
 import ChatDetail from "./views/chat/ChatDetail";
 import PostComment from "./views/post/PostComment";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
-  <Stack.Navigator
+  <GestureHandlerRootView >
+<Stack.Navigator
     initialRouteName={isAuthenticated ? "Home" : "Login"}
     screenOptions={{ headerShown: false }}
   >
@@ -39,6 +41,8 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ChatDetail" component={ChatDetail} />
     <Stack.Screen name="PostComment" component={PostComment} />
   </Stack.Navigator>
+  </GestureHandlerRootView>
+  
 );
 
 const App = () => {

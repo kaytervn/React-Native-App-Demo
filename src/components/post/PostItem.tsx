@@ -19,6 +19,7 @@ import ModalDelete from "./ModalDelete";
 import { LoadingDialog } from "../Dialog";
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
+import BottomSheet from "@gorhom/bottom-sheet";
 const { width, height } = Dimensions.get("window");
 const imageWidth = width - 20;
 
@@ -28,12 +29,14 @@ const PostItem = ({
   onPostDelete,
   onRefresh,
   navigation,
+  onCommentPress
 }: {
   postItem: PostModel;
   onPostUpdate: (post: PostModel) => void;
   onPostDelete: (postId: string) => void;
   onRefresh: () => void;
   navigation: any;
+  onCommentPress: (post: PostModel) => void;
 }) => {
   const { post, del, loading } = useFetch();
   const liked = postItem.isReacted == 1;
@@ -43,7 +46,10 @@ const PostItem = ({
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
-  
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+
   const handleLike = async () => {
     let updatedPost = { ...postItem };
     try {
@@ -54,7 +60,6 @@ const PostItem = ({
         const reactResponse = await del(
           `/v1/post-reaction/delete/${postItem._id}`
         );
-        console.log("unlike");
         if (!reactResponse.result) {
           throw new Error("Failed to unlike");
         }
@@ -65,7 +70,6 @@ const PostItem = ({
         const reactResponse = await post("/v1/post-reaction/create", {
           post: postItem._id,
         });
-        console.log("like");
         if (!reactResponse.result) {
           throw new Error("Failed to like");
         }
@@ -78,9 +82,10 @@ const PostItem = ({
   };
 
   const handleCommentPress = () => {
-    navigation.navigate('PostComment', { postId: postItem._id });
+    onCommentPress(postItem);
   };
 
+  
   const renderStatusIcon = () => {
     if (postItem.kind === 1) {
       return <Ionicons name="earth" size={14} color="#7f8c8d" />;
@@ -125,7 +130,6 @@ const PostItem = ({
           handlePostUpdate(updatedPost);
         }
       },
-      
   }, );
   };
 

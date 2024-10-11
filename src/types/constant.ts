@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+
 const EmailPattern =
   /^(?!.*[.]{2,})[a-zA-Z0-9.%]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -16,9 +17,9 @@ const Stack = createNativeStackNavigator<{
   ForgotPassword: any;
   ResetPassword: any;
   Verify: any;
-  Profile: any;j
+  Profile: any;
   EditProfile: any;
-  ChangePassword: any;j
+  ChangePassword: any;
   PostDetail:any;
   Post:any;
   PostCreateUpdate:any;
@@ -28,5 +29,5 @@ const Stack = createNativeStackNavigator<{
 }>();
 
 const Tab = createBottomTabNavigator();
-
-export { Tab, Stack, EmailPattern, PhonePattern, remoteUrl };
+const emptyBox = require('../assets/empty_box.png');
+export { Tab, Stack, EmailPattern, PhonePattern, remoteUrl, emptyBox };

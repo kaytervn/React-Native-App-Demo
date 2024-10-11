@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { CommentModel } from '@/src/models/comment/CommentModel';
 import { PostModel } from '@/src/models/post/PostModel';
 
 
-const PostComment = ({ route }: any) => {
+const PostComment = ({postItem}: {postItem: PostModel}) => {
   const { get, post, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,15 +26,12 @@ const PostComment = ({ route }: any) => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [newComment, setNewComment] = useState('');
-  const [postDetails, setPostDetails] = useState<PostModel | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
-  const postId = route.params?.postId;
   const size = 10;
 
   useEffect(() => {
     fetchUserData();
-    fetchPostDetails();
     fetchComments(0);
   }, []);
 
@@ -47,25 +44,25 @@ const PostComment = ({ route }: any) => {
     }
   };
 
-  const fetchPostDetails = async () => {
-    try {
-      const res = await get(`/v1/post/${postId}`);
-      setPostDetails(res.data);
-    } catch (error) {
-      console.error('Error fetching post details:', error);
-    }
-  };
-
   const fetchComments = useCallback(async (pageNumber: number) => {
     if (!hasMore && pageNumber !== 0) return;
+    await getComments(pageNumber);
+  }, [get, hasMore]);
+
+  async function getComments(pageNumber: number) {
     try {
-      const res = await get(`/v1/comment/list`, {post: postId, ignoreChildren: 1});
+      const res = await get(`/v1/comment/list`, { post: postItem._id, ignoreChildren: 1 });
       const newComments = res.data.content;
-      if (pageNumber === 0) {
-        setComments(newComments);
-      } else {
-        setComments((prevComments) => [...prevComments, ...newComments]);
-      }
+      
+      setComments((prevComments) => {
+        // Create a Set of existing comment IDs
+        const existingIds = new Set(prevComments.map(comment => comment._id));
+        // Filter out any new comments that already exist
+        const uniqueNewComments = newComments.filter((comment: { _id: string; }) => !existingIds.has(comment._id));
+        // If it's the first page, return only new comments, otherwise append to existing
+        return pageNumber === 0 ? uniqueNewComments : [...prevComments, ...uniqueNewComments];
+      });
+
       setHasMore(newComments.length === size);
       setPage(pageNumber);
     } catch (error) {
@@ -73,12 +70,12 @@ const PostComment = ({ route }: any) => {
     } finally {
       setLoadingDialog(false);
     }
-  }, [get, hasMore, size, postId]);
+  }
 
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(0);
-    fetchPostDetails();
+
     fetchComments(0).then(() => setRefreshing(false));
   };
 
@@ -92,15 +89,11 @@ const PostComment = ({ route }: any) => {
     if (newComment.trim()) {
       setLoadingDialog(true);
       try {
-        const res = await post(`/v1/post/${postId}/comment`, { content: newComment.trim() });
+        const res = await post(`/v1/post/${postItem._id}/comment`, { content: newComment.trim() });
         setComments((prevComments) => [res.data, ...prevComments]);
         setNewComment('');
-        // Update total comments count
-        if (postDetails) {
-          setPostDetails({
-            ...postDetails,
-            totalComments: postDetails.totalComments + 1,
-          });
+        if (postItem) {
+          postItem.totalComments += 1;
         }
       } catch (error) {
         console.error('Error posting comment:', error);
@@ -126,28 +119,7 @@ const PostComment = ({ route }: any) => {
             <Text style={styles.actionText}>{item.totalChildren}</Text>
           </TouchableOpacity>
         </View>
-        {/* {item.totalChildren > 0 && (
-          <View style={styles.repliesContainer}>
-            {item.totalChildren.slice(0, 2).map((reply) => (
-              <View key={reply._id} style={styles.replyContainer}>
-                <Image source={{ uri: reply.author.avatarUrl }} style={styles.replyAvatar} />
-                <View style={styles.replyContent}>
-                  <Text style={styles.replyAuthorName}>{reply.author.displayName}</Text>
-                  <Text style={styles.replyText}>{reply.content}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )} */}
       </View>
-    </View>
-  );
-
-  const renderHeader = () => (
-    <View style={styles.postDetailsContainer}>
-      <Text style={styles.totalText}>
-        {postDetails?.totalReactions} likes · {postDetails?.totalComments} comments
-      </Text>
     </View>
   );
 
@@ -157,14 +129,20 @@ const PostComment = ({ route }: any) => {
 
       <FlatList
         data={comments}
-        keyExtractor={(item, index) => `thumbnail-${index}`}
+        keyExtractor={(item, index) => `${item._id} - ${index}`}
         renderItem={renderComment}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={EmptyComponent}
+        ListHeaderComponent={() => (
+          <View style={styles.postDetailsContainer}>
+            <Text style={styles.totalText}>
+              {postItem?.totalReactions} likes · {postItem?.totalComments} comments
+            </Text>
+          </View>
+        )}
+        ListEmptyComponent={<EmptyComponent message="Chưa có bình luận nào" />}
         ListFooterComponent={() =>
           loading && hasMore ? (
             <ActivityIndicator size="large" color="#007AFF" />
@@ -181,9 +159,7 @@ const PostComment = ({ route }: any) => {
           placeholder="Write a comment..."
           multiline
         />
-        
-        {/* Add new Comment */}
-        <TouchableOpacity style={styles.sendButton}>
+        <TouchableOpacity style={styles.sendButton} onPress={handlePostComment}>
           <Send size={20} color="#059BF0" />
         </TouchableOpacity>
       </View>
@@ -243,31 +219,6 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 12,
     color: '#888',
-  },
-  repliesContainer: {
-    marginTop: 10,
-    paddingLeft: 20,
-  },
-  replyContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  replyAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    marginRight: 10,
-  },
-  replyContent: {
-    flex: 1,
-  },
-  replyAuthorName: {
-    fontWeight: 'bold',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  replyText: {
-    fontSize: 12,
   },
   inputContainer: {
     flexDirection: 'row',

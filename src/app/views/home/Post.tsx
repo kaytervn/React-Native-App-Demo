@@ -17,9 +17,11 @@ import { PostModel } from "@/src/models/post/PostModel";
 import PostItem from "@/src/components/post/PostItem";
 import SearchBar from "@/src/components/search/SearchBar";
 import { ChevronsLeftRightIcon, Send } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
 import { useFocusEffect } from "expo-router";
+import BottomSheet from "@gorhom/bottom-sheet";
+import PostComment from "../post/PostComment";
+
 
 const Post = ({ navigation, route }: any) => {
   const { get, loading } = useFetch();
@@ -32,7 +34,9 @@ const Post = ({ navigation, route }: any) => {
   const [activeTab, setActiveTab] = useState(0);
   const isInitialMount = useRef(true);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
-
+  const [selectedPost, setSelectedPost] = useState<PostModel | null>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  
   const size = 4;
 
   useEffect(() => {
@@ -78,7 +82,11 @@ const Post = ({ navigation, route }: any) => {
         content: content
       });
       const newPosts = res.data.content;
-      setPosts(newPosts);
+      if (pageNumber === 0) {
+        setPosts(newPosts);
+      } else {
+        setPosts((prevPosts) => [...prevPosts, ...newPosts]);
+      }
       setHasMore(newPosts.length === size);
       setPage(pageNumber);
     } catch (error) {
@@ -145,16 +153,20 @@ const Post = ({ navigation, route }: any) => {
     });
   };
 
+  const handleCommentPress = (postItem: PostModel) => {
+    setSelectedPost(postItem);
+    bottomSheetRef.current?.expand();
+  };
+
   const renderItem = ({ item }: { item: PostModel }) => (
-    <View>
-      <PostItem
-        postItem={item}
-        onPostUpdate={handlePostUpdate}
-        onPostDelete={handlePostDelete}
-        onRefresh={handleRefresh}
-        navigation={navigation}
-      />
-    </View>
+    <PostItem
+      postItem={item}
+      onPostUpdate={handlePostUpdate}
+      onPostDelete={handlePostDelete}
+      onRefresh={handleRefresh}
+      navigation={navigation}
+      onCommentPress={handleCommentPress}
+    />
   );
 
   const renderHeader = () => (
@@ -162,8 +174,11 @@ const Post = ({ navigation, route }: any) => {
       style={styles.inputCreatePost}
       onPress={() => {
         navigation.navigate("PostCreateUpdate", {
-          onRefresh: handleRefresh
+          onRefresh: () => {
+            handleRefresh();
+          }
         });
+        
       }}
       onLongPress={() => {}}
     >
@@ -241,7 +256,7 @@ const Post = ({ navigation, route }: any) => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={EmptyComponent}
+        ListEmptyComponent={<EmptyComponent message="Không có bài đăng nào" />}
         ListFooterComponent={() =>
           loading && hasMore ? (
             <ActivityIndicator size="large" color="#007AFF" />
@@ -249,7 +264,22 @@ const Post = ({ navigation, route }: any) => {
         }
       />
 
-      
+    <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={["25%","50%", "90%"]}
+        enablePanDownToClose={true}
+        onChange={(index) => {
+          if (index === -1) {
+            setSelectedPost(null);
+          }
+        }}
+      >
+        {selectedPost && (
+          <PostComment postItem={selectedPost} />
+        )}
+      </BottomSheet>
+
     </View>
   );
 };
