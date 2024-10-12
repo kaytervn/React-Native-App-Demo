@@ -11,6 +11,7 @@ export type CommentModel = {
   isOwner: number
   isUpdated: number
   isReacted: number
+  isChildren: number
   totalChildren: number
   totalReactions: number
 }

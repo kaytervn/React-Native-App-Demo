@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { BottomSheetModal, BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { Send, Heart, MessageCircle, ImageIcon } from "lucide-react-native";
+import { Send, Heart, MessageCircle, ImageIcon, ChevronUp, ChevronDown, X, Bold } from "lucide-react-native";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
@@ -30,6 +30,9 @@ const PostComment= ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [totalComments, setTotalComments] = useState(postItem.totalComments);
+  const [expandedComments, setExpandedComments] = useState<{ [key: string]: CommentModel[] }>({});
+  const [loadingChildren, setLoadingChildren] = useState<{ [key: string]: boolean }>({});
+  const [replyingTo, setReplyingTo] = useState<CommentModel | null>(null);
   const commentSize = 10;
 
   const fetchComments = useCallback(async (pageNumber: number) => {
@@ -42,6 +45,8 @@ const PostComment= ({
       console.error('Error fetching comments:', error);
     }
   }, [get, postItem._id]);
+
+  
 
   const handleLoadMoreComments = () => {
     if (hasMore && !loading) {
@@ -57,7 +62,7 @@ const PostComment= ({
       let params = {
         post: postItem._id,
         content: newComment,
-        parent: null,
+        parent: replyingTo ? replyingTo._id : null,
         imageUrl: ""
       };
 
@@ -66,10 +71,17 @@ const PostComment= ({
       }
 
       await post(`/v1/comment/create`, params);
-      fetchComments(0);
+      if (replyingTo) {
+        // Refresh child comments if replying
+        await fetchChildComments(replyingTo._id);
+      } else {
+        // Refresh top-level comments if not replying
+        fetchComments(0);
+      }
       setNewComment('');
       setSelectedImage(null);
       setTotalComments(totalComments + 1);
+      setReplyingTo(null);
       onCommentAdded();
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -89,6 +101,70 @@ const PostComment= ({
       setSelectedImage(result.assets[0].uri);
     }
   };
+
+  // Child comments
+  const fetchChildComments = async (parentId: string) => {
+    setLoadingChildren(prev => ({ ...prev, [parentId]: true }));
+    try {
+      const res = await get(`/v1/comment/list`, { parent: parentId, isPaged: 0 });
+      const childComments = res.data.content;
+      setExpandedComments(prev => ({ ...prev, [parentId]: childComments }));
+    } catch (error) {
+      console.error('Error fetching child comments:', error);
+    } finally {
+      setLoadingChildren(prev => ({ ...prev, [parentId]: false }));
+    }
+  };
+
+  const toggleChildComments = (commentId: string) => {
+    if (expandedComments[commentId]) {
+      // If already expanded, collapse
+      setExpandedComments(prev => {
+        const newState = { ...prev };
+        delete newState[commentId];
+        return newState;
+      });
+    } else {
+      // If not expanded, fetch child comments
+      fetchChildComments(commentId);
+    }
+  };
+
+  const renderChildComments = (parentId: string) => {
+    const children = expandedComments[parentId];
+    if (!children) return null;
+
+    return (
+      <View style={styles.childCommentsContainer}>
+        {children.map(child => (
+          <View key={child._id} style={styles.childCommentItem}>
+            <Image source={{ uri: child.user.avatarUrl }} style={styles.childAvatar} />
+            <View style={styles.childCommentContent}>
+              <Text style={styles.authorName}>{child.user.displayName}</Text>
+              <Text style={styles.commentText}>{child.content}</Text>
+              {child.imageUrl && (
+                <Image source={{ uri: child.imageUrl }} style={styles.childCommentImage} resizeMode="contain" />
+              )}
+              <TouchableOpacity style={styles.actionButton}>
+                <Heart size={16} color="#888" />
+                <Text style={styles.actionText}>{child.totalReactions}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  // Reply to comment
+  const handleReply = (comment: CommentModel) => {
+    setReplyingTo(comment);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
 
   const renderComment = ({ item }: { item: CommentModel }) => (
     <View style={styles.commentContainer}>
@@ -116,7 +192,27 @@ const PostComment= ({
             <MessageCircle size={16} color="#888" />
             <Text style={styles.actionText}>{item.totalChildren}</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleReply(item)}>
+            <Text style={styles.replyButtonText}>Phản hồi</Text>
+          </TouchableOpacity>
         </View>
+
+        {item.totalChildren > 0 && (
+          <TouchableOpacity onPress={() => toggleChildComments(item._id)} style={styles.viewRepliesButton}>
+            {loadingChildren[item._id] ? (
+              <ActivityIndicator size="small" color="#059BF0" />
+            ) : (
+              <>
+                <Text style={styles.viewRepliesText}>
+                  {expandedComments[item._id] ? "Ẩn phản hồi" : `Xem ${item.totalChildren} phản hồi`}
+                </Text>
+                {expandedComments[item._id] ? <ChevronUp size={16} color="#059BF0" /> : <ChevronDown size={16} color="#059BF0" />}
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {renderChildComments(item._id)}
       </View>
     </View>
   );
@@ -126,7 +222,7 @@ const PostComment= ({
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
       <View style={styles.postDetailsContainer}>
             <Text style={styles.totalText}>
-              {postItem.totalReactions} likes · {totalComments} comments
+              {postItem.totalReactions} Lượt thích · {totalComments} Bình luận
             </Text>
       </View>
       <BottomSheetFlatList
@@ -142,13 +238,21 @@ const PostComment= ({
           ) : null
         }
       />
+       {replyingTo && (
+        <View style={styles.replyingToContainer}>
+          <Text style={styles.replyingToText}>Phản hồi {replyingTo.user.displayName}</Text>
+          <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
+            <X size={20} color="#059BF0" />
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.inputContainer}>
         <Image source={{ uri: postItem.user.ava || undefined }} style={styles.avatar} />
         <TextInput
           style={styles.input}
           value={newComment}
           onChangeText={setNewComment}
-          placeholder="Add a comment..."
+          placeholder={!replyingTo ? "Thêm bình luận..." : "Phản hồi bình luận..."}
           multiline
         />
         <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
@@ -157,6 +261,7 @@ const PostComment= ({
         <TouchableOpacity style={styles.iconButton} onPress={createComment}>
           <Send size={20} color="#059BF0" />
         </TouchableOpacity>
+       
       </View>
       {selectedImage && (
         <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
@@ -186,7 +291,7 @@ const styles = StyleSheet.create({
   },
   commentActions: {
     flexDirection: 'row',
-    marginTop: 5,
+    marginTop: 10,
   },
   actionButton: {
     flexDirection: 'row',
@@ -251,6 +356,61 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
+  },
+
+  //chilren comment
+  childCommentsContainer: {
+    marginLeft: 20,
+    marginTop: 10,
+  },
+  childCommentItem: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  childAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
+  },
+  childCommentContent: {
+    flex: 1,
+  },
+  childCommentImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginTop: 5,
+  },
+  viewRepliesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  viewRepliesText: {
+    color: '#059BF0',
+    marginRight: 5,
+  },
+  //Reply
+  
+  replyButtonText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: 'bold'
+  },
+  replyingToContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  replyingToText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  cancelReplyButton: {
+    padding: 5,
   },
 });
 

@@ -192,7 +192,6 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
             handleRefresh();
           }
         });
-        
       }}
       onLongPress={() => {}}
     >
