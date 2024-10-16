@@ -19,7 +19,7 @@ import { LoadingDialog } from "@/src/components/Dialog";
 import Toast from "react-native-toast-message";
 import { errorToast, successToast } from "@/src/types/toast";
 import ModalStatus from "@/src/components/post/ModalStatus";
-import PostItem from "@/src/components/post/PostItem";
+import PostItem from "@/src/app/views/post/PostItem";
 import { PostModel } from "@/src/models/post/PostModel";
 
 const { height } = Dimensions.get("window");

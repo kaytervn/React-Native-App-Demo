@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
-import PostItem from "@/src/components/post/PostItem";
+import PostItem from "@/src/app/views/post/PostItem";
 import SearchBar from "@/src/components/search/SearchBar";
 import { ChevronsLeftRightIcon, Send } from "lucide-react-native";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
@@ -142,14 +142,12 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
 
   const handlePostUpdate = (updatedPost: PostModel) => {
     setPosts((prevPosts) => {
-      
       const index = prevPosts.findIndex((post) => post._id === updatedPost._id);
       if (index !== -1) {
         const newPosts = [...prevPosts];
         newPosts[index] = updatedPost;
         return newPosts;
       }
-
       return prevPosts;
     });
   };

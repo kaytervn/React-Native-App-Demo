@@ -13,10 +13,10 @@ import React, { useRef, useState } from "react";
 import { PostModel } from "@/src/models/post/PostModel";
 import { Ionicons } from "@expo/vector-icons";
 import useFetch from "@/src/app/hooks/useFetch";
-import ModalListImageComponent from "./ModalListImageComponent";
-import MenuClick from "./MenuClick";
-import ModalDelete from "./ModalDelete";
-import { LoadingDialog } from "../Dialog";
+import ModalListImageComponent from "../../../components/post/ModalListImageComponent";
+import MenuClick from "../../../components/post/MenuClick";
+import ModalDelete from "../../../components/post/ModalDelete";
+import { LoadingDialog } from "../../../components/Dialog";
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -75,7 +75,7 @@ const PostItem = ({
       }
     } catch (error) {
       // Revert UI if something goes wrong
-      onPostUpdate(postItem); // Revert to the original state
+      onPostUpdate(postItem); 
       console.error("Error updating like status:", error);
     }
   };
@@ -236,11 +236,13 @@ const PostItem = ({
       />
 
       <MenuClick
+        titleUpdate={"Chỉnh sửa bài viết"}
+        titleDelete={"Xóa bài viết"} 
         isVisible={showMenu}
         onClose={() => setShowMenu(false)}
         onUpdate={handleUpdate}
-        onDelete={handleDeletePress}
-      />
+        onDelete={handleDeletePress}      />
+      
       <ModalDelete
         isVisible={showDeleteModal}
         title="Bạn sẽ xóa bài viết này chứ?"

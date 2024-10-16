@@ -5,13 +5,15 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 interface MenuProps {
+  titleUpdate: string,
+  titleDelete: string,
   isVisible: boolean;
   onClose: () => void;
   onUpdate: () => void;
   onDelete: () => void;
 }
 
-const MenuClick = ({ isVisible, onClose, onUpdate, onDelete }: MenuProps) => {
+const MenuClick = ({ titleUpdate, titleDelete, isVisible, onClose, onUpdate, onDelete }: MenuProps) => {
   const [slideAnim] = useState(new Animated.Value(height));
 
   useEffect(() => {
@@ -54,11 +56,11 @@ const MenuClick = ({ isVisible, onClose, onUpdate, onDelete }: MenuProps) => {
           <View style={styles.handle} />
           <TouchableOpacity style={styles.menuItem} onPress={onUpdate}>
             <Ionicons name="create-outline" size={24} color="#3498db" />
-            <Text style={styles.menuItemText}>Chỉnh sửa bài viết</Text>
+            <Text style={styles.menuItemText}>{titleUpdate}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={onDelete}>
             <Ionicons name="trash-outline" size={24} color="#e74c3c" />
-            <Text style={styles.menuItemText}>Xóa bài viết</Text>
+            <Text style={styles.menuItemText}>{titleDelete}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
