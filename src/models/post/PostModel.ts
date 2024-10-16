@@ -2,12 +2,15 @@ import { UserModel } from "../user/UserModel";
 
 export type PostModel = {
   _id: string
-  createdAt: string
-  updatedAt: string
-  content: string | null
-  imageUrl: string | null
   user: UserModel
-  totalReactions: number,
+  kind: number
+  content: string | null
+  imageUrls: string[]
+  status: number
+  createdAt: string
   totalComments: number
-
+  totalReactions: number
+  isOwner: number
+  isUpdated: number
+  isReacted: number
 }

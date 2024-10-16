@@ -1,0 +1,442 @@
+import React, { useCallback, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { BottomSheetModal, BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { Send, Heart, MessageCircle, ImageIcon, ChevronUp, ChevronDown, X, Bold } from "lucide-react-native";
+import useFetch from "../../hooks/useFetch";
+import { LoadingDialog } from "@/src/components/Dialog";
+import EmptyComponent from "@/src/components/empty/EmptyComponent";
+import { CommentModel } from "@/src/models/comment/CommentModel";
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '@/src/types/utils';
+import { Ionicons } from "@expo/vector-icons";
+
+import Toast from "react-native-toast-message";
+import { successToast } from "@/src/types/toast";
+import PostCommentItem from "../comment/PostCommentItem";
+
+
+const PostComment= ({ 
+  navigation,
+  postItem, 
+  onCommentAdded 
+}: any) => {
+  const { get, post, del, loading } = useFetch();
+  const [loadingDialog, setLoadingDialog] = useState(false);
+  const [comments, setComments] = useState<CommentModel[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalComments, setTotalComments] = useState(postItem.totalComments);
+  const [expandedComments, setExpandedComments] = useState<{ [key: string]: CommentModel[] }>({});
+  const [loadingChildren, setLoadingChildren] = useState<{ [key: string]: boolean }>({});
+  const [replyingTo, setReplyingTo] = useState<CommentModel | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const commentSize = 10;
+
+  const fetchComments = useCallback(async (pageNumber: number) => {
+    try {
+      const res = await get(`/v1/comment/list`, { comment: postItem._id, page: pageNumber, size: commentSize, ignoreChildren: 1 });
+      const newComments = res.data.content;
+      setComments(prev => pageNumber === 0 ? newComments : [...prev, ...newComments]);
+      setHasMore(newComments.length === commentSize);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  }, [get, postItem._id]);
+
+  
+
+  const handleLoadMoreComments = () => {
+    if (hasMore && !loading) {
+      fetchComments(Math.ceil(comments.length / commentSize));
+    }
+  };
+
+  const onItemUpdate = async (updatedComment: CommentModel) => {
+    if (updatedComment.isChildren) {
+      setExpandedComments(prevExpandedComments => {
+        const updatedExpandedComments = { ...prevExpandedComments };
+        for (const parentId in updatedExpandedComments) {
+          updatedExpandedComments[parentId] = updatedExpandedComments[parentId].map(c => 
+            c._id === updatedComment._id ? updatedComment : c
+          );
+        }
+        return updatedExpandedComments;
+      });
+    } else {
+      // console.log("updatedComment", updatedComment.totalReactions)
+      
+      setComments(prevComments => {
+        const index = prevComments.findIndex(comment => comment._id === updatedComment._id);
+        if (index !== -1) {
+          const newComments = [...prevComments];
+          console.log("old", newComments[index].totalReactions)
+          newComments[index] = updatedComment;
+          return newComments;
+        }
+        return prevComments;
+      });
+    }
+  };
+
+  const createComment = async () => {
+    if (!newComment.trim() && !selectedImage) return;
+    setLoadingDialog(true);
+    try {
+      let params = {
+        post: postItem._id,
+        content: newComment,
+        parent: replyingTo ? replyingTo._id : null,
+        imageUrl: ""
+      };
+
+      if (selectedImage) {
+        params.imageUrl = await uploadImage(selectedImage, post);
+      }
+      await post(`/v1/comment/create`, params);
+      if (replyingTo) {
+        // Refresh child comments if replying
+        await fetchChildComments(replyingTo._id);
+      } else {
+        // Refresh top-level comments if not replying
+        fetchComments(0);
+      }
+      setNewComment('');
+      setSelectedImage(null);
+      setTotalComments(totalComments + 1);
+      setReplyingTo(null);
+      onCommentAdded();
+    } catch (error) {
+      console.error('Error posting comment:', error);
+    } finally {
+      setLoadingDialog(false);
+    }
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  // Child comments
+  const fetchChildComments = async (parentId: string) => {
+    setLoadingChildren(prev => ({ ...prev, [parentId]: true }));
+    try {
+      const res = await get(`/v1/comment/list`, { parent: parentId, isPaged: 0 });
+      const childComments = res.data.content;
+      setExpandedComments(prev => ({ ...prev, [parentId]: childComments }));
+    } catch (error) {
+      console.error('Error fetching child comments:', error);
+    } finally {
+      setLoadingChildren(prev => ({ ...prev, [parentId]: false }));
+    }
+  };
+
+  const toggleChildComments = (commentId: string) => {
+    if (expandedComments[commentId]) {
+      // If already expanded, collapse
+      setExpandedComments(prev => {
+        const newState = { ...prev };
+        delete newState[commentId];
+        return newState;
+      });
+    } else {
+      // If not expanded, fetch child comments
+      fetchChildComments(commentId);
+    }
+  };
+
+  // Reply to comment
+  const handleReply = (comment: CommentModel) => {
+    setReplyingTo(comment);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+
+  const renderComment = ({ item }: { item: CommentModel }) => (
+   <PostCommentItem
+      item={item}
+      onItemUpdate={onItemUpdate}
+      toggleChildComments={toggleChildComments}
+      handleReply={handleReply}
+      expandedComments={expandedComments}
+      loadingChildren={loadingChildren}
+      navigation={navigation}
+    />
+  );
+
+  // const handleUpdate = () => {
+  //   setShowMenu(false);
+  //   navigation.navigate("PostCreateUpdate", 
+  //   { 
+  //     comment_id: comment._id , 
+  //     handleCommentUpdate: handleCommentUpdate
+  // }, );
+  // };
+
+  // const handleCommentUpdate = (handleCommentUpdate: CommentModel) => {
+  //   setComments((prevComments) => {
+  //     const index = prevComments.findIndex((comment) => comment._id === handleCommentUpdate._id);
+  //     if (index !== -1) {
+  //       const newComments = [...prevComments];
+  //       newComments[index] = handleCommentUpdate;
+  //       return newComments;
+  //     }
+  //     return prevComments;
+  //   });
+  // };
+  
+  // const handleDeletePress = () => {
+  //   setShowMenu(false);
+  //   setShowDeleteModal(true);
+  // };
+  
+  // const handleDeleteConfirm = async () => {
+  //   setShowDeleteModal(false);
+  //   setLoadingDialog(true)
+  //   try {
+  //     const response = await del(`/v1/comment/delete/${comment._id}`);
+  //     if (response.result) {
+  //       setComments((prevComments) => prevComments.filter((c) => c._id !== comment._id));
+  //       Toast.show(successToast("Xóa bài đăng thành công!"))
+  //     } else {
+  //       throw new Error("Failed to delete comment");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error deleting comment:", error);
+  //     Alert.alert("Error", "Failed to delete the comment. Please try again.");
+  //   } finally {
+  //     setLoadingDialog(false)
+  //   }
+  // };
+
+  return (
+    <View style={styles.container}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
+      <View style={styles.postDetailsContainer}>
+            <Text style={styles.totalText}>
+              {postItem.totalReactions} Lượt thích · {totalComments} Bình luận
+            </Text>
+      </View>
+      <BottomSheetFlatList
+        data={comments}
+        keyExtractor={(item) => item._id}
+        renderItem={renderComment}
+        ListEmptyComponent={<EmptyComponent message="No comments yet" />}
+        onEndReached={handleLoadMoreComments}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() =>
+          loading && hasMore ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : null
+        }
+      />
+       {replyingTo && (
+        <View style={styles.replyingToContainer}>
+          <Text style={styles.replyingToText}>Phản hồi {replyingTo.user.displayName}</Text>
+          <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
+            <X size={20} color="#059BF0" />
+          </TouchableOpacity>
+        </View>
+      )}
+      <View style={styles.inputContainer}>
+        <Image source={{ uri: postItem.user.ava || undefined }} style={styles.avatar} />
+        <TextInput
+          style={styles.input}
+          value={newComment}
+          onChangeText={setNewComment}
+          placeholder={!replyingTo ? "Thêm bình luận..." : "Phản hồi bình luận..."}
+          multiline
+        />
+        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+          <ImageIcon size={20} color="#059BF0" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton} onPress={createComment}>
+          <Send size={20} color="#059BF0" />
+        </TouchableOpacity>
+       
+      </View>
+      {selectedImage && (
+        <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+      )}
+
+      {/* <MenuClick
+        titleUpdate={"Chỉnh sửa bài viết"}
+        titleDelete={"Xóa bài viết"} 
+        isVisible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onUpdate={handleUpdate}
+        onDelete={handleDeletePress}      /> */}
+    </View>
+  );
+};
+
+
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+
+  authorName: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  commentText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  actionText: {
+    marginLeft: 5,
+    fontSize: 12,
+    color: '#888',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  input: {
+    flex: 1,
+    marginHorizontal: 10,
+    fontSize: 16,
+  },
+  iconButton: {
+    padding: 5,
+    marginLeft: 5,
+  },
+  selectedImage: {
+    width: 100,
+    height: 100,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  commentList: {
+    flexGrow: 1,
+  },
+  postDetailsContainer: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  totalText: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  commentContainer: {
+    flexDirection: 'row',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  commentContent: {
+    
+  },
+  imageWrapper: {
+    marginTop: 10,
+    alignItems: 'flex-start',  // Changed from 'center' to 'flex-start'
+    justifyContent: 'flex-start',
+    width: '100%',  // Ensure the wrapper takes full width
+  },
+  commentImage: {
+    width: '100%',
+    height: 200,
+    alignSelf: 'flex-start',  // Added to ensure the image aligns to the start
+  },
+
+  //chilren comment
+  childCommentsContainer: {
+    marginLeft: 20,
+    marginTop: 10,
+  },
+  childCommentItem: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  childAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
+  },
+  childCommentContent: {
+    
+  },
+  childCommentImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginTop: 5,
+  },
+  viewRepliesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  viewRepliesText: {
+    color: '#059BF0',
+    marginRight: 5,
+  },
+  //Reply
+  
+  replyButtonText: {
+    color: '#999999',
+    fontSize: 14,
+    fontWeight: 'semibold',
+  },
+  replyingToContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  replyingToText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  cancelReplyButton: {
+    padding: 5,
+  },
+});
+
+export default PostComment;

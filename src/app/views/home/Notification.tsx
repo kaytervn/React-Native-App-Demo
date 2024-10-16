@@ -30,10 +30,9 @@ const Notification = ({ navigation }: any) => {
         const params = {
           page: pageNumber,
           size,
-          getMyNotifications: 1
         };
-        console.log("Notification params:", params);
-        
+       
+    
         const res = await get(`/v1/notification/list`, params);
         console.log("Notification response:", res.data.content);
         

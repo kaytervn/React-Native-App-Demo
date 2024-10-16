@@ -1,16 +1,30 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Keyboard,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import { PostModel } from "@/src/models/post/PostModel";
-import PostItem from "@/src/components/post/PostItem";
-import SearchBar from '@/src/components/search/SearchBar';
-import { Send } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import EmptyComponent from '@/src/components/empty/EmptyComponent';
+import PostItem from "@/src/app/views/post/PostItem";
+import SearchBar from "@/src/components/search/SearchBar";
+import { ChevronsLeftRightIcon, Send } from "lucide-react-native";
+import EmptyComponent from "@/src/components/empty/EmptyComponent";
+import { useFocusEffect } from "expo-router";
+import BottomSheet, { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import PostComment from "../post/PostComment";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-const Post = ({ navigation }: any) => {
+
+const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
   const { get, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,19 +35,19 @@ const Post = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState(0);
   const isInitialMount = useRef(true);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<PostModel | null>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const size = 4;
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const avatar = await AsyncStorage.getItem("userAvatar");
-        console.log(userAvatar)
-        const name = await AsyncStorage.getItem("userName");
-        setUserAvatar(avatar);
-        setUserName(name);
+        const res = await get("/v1/user/profile");
+        setUserAvatar(res.data.avatarUrl);
+        // setUserName(profile.data.displayName);
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching user data:", error);
       }
     };
     fetchUserData();
@@ -41,46 +55,32 @@ const Post = ({ navigation }: any) => {
   }, []);
 
   const tabs = [
-    { title: "Cộng đồng", getMyPosts: 0, getMyFriendPosts: 0 },
-    { title: "Bạn bè", getMyPosts: 0, getMyFriendPosts: 1 },
-    { title: "Tôi", getMyPosts: 1, getMyFriendPosts: 0 },
+    { title: "Cộng đồng", getListKind: 1 },
+    { title: "Bạn bè", getListKind: 2 },
+    { title: "Tôi", getListKind: 3 },
   ];
 
   const handleSearch = async () => {
     setLoadingDialog(true);
-    try {
-      const res = await get(`/v1/post/list`, {
-        content: searchQuery.trim(),
-        page: 0,
-        size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
-      });
-      setPosts(res.data.content);
-      setHasMore(true);
-      setPage(0);
-    } catch (error) {
-      console.error('Error searching posts:', error);
-    } finally {
-      setLoadingDialog(false);
-    }
+    Keyboard.dismiss();
+    await getPosts(0, searchQuery)
+    setLoadingDialog(false);
   };
 
-  const clearSearch = () => {
-    setLoadingDialog(true)
+  const clearSearch = async () => {
+    setLoadingDialog(true);
+    Keyboard.dismiss();
     setSearchQuery("");
-    setPage(0);
-    fetchData(0);
+    await getPosts(0, "");
   };
 
-  const fetchData = useCallback(async (pageNumber: number) => {
-    if (!hasMore && pageNumber !== 0) return;
+  async function getPosts(pageNumber: number, content: string) {
     try {
       const res = await get(`/v1/post/list`, {
         page: pageNumber,
         size,
-        getMyPosts: tabs[activeTab].getMyPosts,
-        getMyFriendPosts: tabs[activeTab].getMyFriendPosts
+        getListKind: tabs[activeTab].getListKind,
+        content: content
       });
       const newPosts = res.data.content;
       if (pageNumber === 0) {
@@ -91,17 +91,25 @@ const Post = ({ navigation }: any) => {
       setHasMore(newPosts.length === size);
       setPage(pageNumber);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error("Error fetching posts:", error);
     } finally {
       setLoadingDialog(false);
     }
-  }, [get, hasMore, size, activeTab]);
+  }
+
+  const fetchData = useCallback(
+    async (pageNumber: number) => {
+      if (!hasMore && pageNumber !== 0) return;
+      getPosts(pageNumber, searchQuery);
+    },
+    [get, size, activeTab]
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
     setSearchQuery("");
     setPage(0);
-    fetchData(0).then(() => setRefreshing(false));
+    getPosts(0, "").then(() => setRefreshing(false));
   };
 
   const handleLoadMore = () => {
@@ -126,27 +134,66 @@ const Post = ({ navigation }: any) => {
     }
   }, [activeTab]);
 
+  const handlePostDelete = (deletedPostId: string) => {
+    setPosts((prevPosts) =>
+      prevPosts.filter((post) => post._id !== deletedPostId)
+    );
+  };
 
+  const handlePostUpdate = (updatedPost: PostModel) => {
+    setPosts((prevPosts) => {
+      const index = prevPosts.findIndex((post) => post._id === updatedPost._id);
+      if (index !== -1) {
+        const newPosts = [...prevPosts];
+        newPosts[index] = updatedPost;
+        return newPosts;
+      }
+      return prevPosts;
+    });
+  };
+
+  const handleCommentPress = useCallback((postItem: PostModel) => {
+    setSelectedPost(postItem);
+    bottomSheetModalRef.current?.present();
+  }, []);
+
+  const handleCommentAdded = useCallback(() => {
+    if (selectedPost) {
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post._id === selectedPost._id 
+            ? { ...post, totalComments: post.totalComments + 1 } 
+            : post
+        )
+      );
+    }
+  }, [selectedPost]);
 
   const renderItem = ({ item }: { item: PostModel }) => (
-    <TouchableOpacity
-      onPress={() => 
-        navigation.navigate("PostDetail", {postId:item._id})
-      } 
-    >
-      <PostItem post={item} />
-    </TouchableOpacity>
+    <PostItem
+      postItem={item}
+      onPostUpdate={handlePostUpdate}
+      onPostDelete={handlePostDelete}
+      onRefresh={handleRefresh}
+      navigation={navigation}
+      onCommentPress={handleCommentPress}
+      setIsTabBarVisible={setIsTabBarVisible}
+    />
   );
 
   const renderHeader = () => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.inputCreatePost}
-      onPress={() => navigation.navigate("PostCreateUpdate")}
+      onPress={() => {
+        navigation.navigate("PostCreateUpdate", {
+          onRefresh: () => {
+            handleRefresh();
+          }
+        });
+      }}
+      onLongPress={() => {}}
     >
-      <Image
-        source={{ uri: userAvatar || undefined }}
-        style={styles.avatar}
-      />
+      <Image source={{ uri: userAvatar || undefined }} style={styles.avatar} />
       <Text style={styles.inputPlaceholder}>Bạn đang nghĩ gì?</Text>
       <View style={styles.sendButton}>
         <Send size={20} color="#059BF0" />
@@ -154,18 +201,43 @@ const Post = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
+  //from update post
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.updatedPost) {
+        const updatedPost = route.params.updatedPost;
+        setPosts((currentPosts) => {
+          const index = currentPosts.findIndex(
+            (post) => post._id === updatedPost._id
+          );
+          if (index !== -1) {
+            // Update existing post
+            const newPosts = [...currentPosts];
+            newPosts[index] = updatedPost;
+            return newPosts;
+          } else {
+            // Add new post to the beginning of the list
+            return [updatedPost, ...currentPosts];
+          }
+        });
+        // Clear the params after handling
+        navigation.setParams({ updatedPost: undefined });
+      }
+    }, [navigation, route.params?.updatedPost])
+  );
+
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
-    
+
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         onSubmitEditing={handleSearch}
         onSearch={handleSearch}
         placeholder="Tìm kiếm bài đăng..."
-        handleClear={clearSearch}      
-        />
+        handleClear={clearSearch}
+      />
 
       <View style={styles.tabContainer}>
         {tabs.map((tab, index) => (
@@ -174,7 +246,12 @@ const Post = ({ navigation }: any) => {
             style={[styles.tab, activeTab === index && styles.activeTab]}
             onPress={() => handleTabChange(index)}
           >
-            <Text style={[styles.tabText, activeTab === index && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === index && styles.activeTabText,
+              ]}
+            >
               {tab.title}
             </Text>
           </TouchableOpacity>
@@ -190,11 +267,34 @@ const Post = ({ navigation }: any) => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={EmptyComponent}
-        ListFooterComponent={() => 
-          loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
+        ListEmptyComponent={<EmptyComponent message="Không có bài đăng nào" />}
+        ListFooterComponent={() =>
+          loading && hasMore ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : null
         }
       />
+
+    <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={1}
+        snapPoints={["50","92%"]}
+        onChange={(index) => {
+          if (index === -1) {
+            setSelectedPost(null);
+            setIsTabBarVisible(true);
+          } else {
+            setIsTabBarVisible(false);
+          }
+        }}
+      >
+        {selectedPost && (
+          <PostComment
+            postItem={selectedPost}
+            onCommentAdded={handleCommentAdded}
+          />
+        )}
+      </BottomSheetModal>
     </View>
   );
 };
@@ -202,97 +302,97 @@ const Post = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   //search
   searchContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
-    marginHorizontal:10,
-    marginTop:15
+    marginHorizontal: 10,
+    marginTop: 15,
   },
   searchInputContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(237, 247, 255, 0.15)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(237, 247, 255, 0.15)",
     borderRadius: 25,
     paddingHorizontal: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
   },
   searchIcon: {
     marginRight: 8,
-    color: '#fff',
+    color: "#fff",
   },
   searchInput: {
     flex: 1,
     height: 40,
     fontSize: 16,
-    color: '#fff',
-    tintColor: '#fff',
+    color: "#fff",
+    tintColor: "#fff",
   },
   clearButton: {
     padding: 4,
   },
   searchButton: {
     marginLeft: 12,
-    backgroundColor: '#059BF0',
+    backgroundColor: "#059BF0",
     borderRadius: 25,
     paddingHorizontal: 16,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   //emptyList
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   emptyText: {
     fontSize: 18,
-    color: '#999',
-    textAlign: 'center',
+    color: "#999",
+    textAlign: "center",
   },
   //Tab
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 5,
     paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: "transparent",
   },
   activeTab: {
-    borderBottomColor: '#059BF0',
+    borderBottomColor: "#059BF0",
   },
   tabText: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   activeTabText: {
-    color: '#059BF0',
-    fontWeight: 'bold',
+    color: "#059BF0",
+    fontWeight: "bold",
   },
   //Search
   inputCreatePost: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 30,
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginVertical: 15,
     marginHorizontal: 15,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
@@ -307,16 +407,26 @@ const styles = StyleSheet.create({
   inputPlaceholder: {
     flex: 1,
     fontSize: 16,
-    color: '#888',
+    color: "#888",
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#000',
+    color: "#000",
   },
   sendButton: {
     padding: 5,
   },
 });
+
+const Post = (props: any) => {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <PostContent {...props} />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
+  );
+};
 
 export default Post;
