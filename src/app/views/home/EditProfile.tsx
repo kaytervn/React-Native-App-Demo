@@ -18,8 +18,6 @@ import {
   CircleUserRoundIcon,
   InfoIcon,
   LockIcon,
-  MailIcon,
-  PhoneIcon,
   ShieldCheckIcon,
 } from "lucide-react-native";
 import DefaultUser from "../../../assets/user_icon.png";
@@ -27,7 +25,6 @@ import { LoadingDialog } from "@/src/components/Dialog";
 import useFetch from "../../hooks/useFetch";
 import Toast from "react-native-toast-message";
 import { errorToast } from "@/src/types/toast";
-import dayjs from "dayjs";
 import { EmailPattern, PhonePattern } from "@/src/types/constant";
 
 const EditProfile = ({ navigation }: any) => {
@@ -40,20 +37,12 @@ const EditProfile = ({ navigation }: any) => {
     const newErrors: any = {};
     if (!form.displayName)
       newErrors.displayName = "Tên hiển thị không được bỏ trống";
-    if (!form.email.trim()) {
-      newErrors.email = "Email không được bỏ trống";
-    } else if (!EmailPattern.test(form.email)) {
-      newErrors.email = "Email không hợp lệ";
-    }
-    if (!form.phone) {
-      newErrors.phone = "Số điện thoại không được bỏ trống";
-    } else if (!PhonePattern.test(form.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ";
-    }
     if (changePassword) {
-      if (!form.password || form.password.length < 6)
-        newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
-      if (form.confirmPassword !== form.password)
+      if (!form.currentPassword.trim())
+        newErrors.currentPassword = "Mật khẩu hiện tại không được bỏ trống";
+      if (!form.newPassword || form.newPassword.length < 6)
+        newErrors.newPassword = "Mật khẩu mới phải có ít nhất 6 ký tự";
+      if (form.confirmPassword !== form.newPassword)
         newErrors.confirmPassword = "Mật khẩu xác nhận không trùng khớp";
     }
     return newErrors;
@@ -65,10 +54,9 @@ const EditProfile = ({ navigation }: any) => {
       bio: "",
       birthDate: "",
       avatarUrl: null,
-      email: "",
-      phone: "",
       roleId: null,
-      password: null,
+      newPassword: null,
+      currentPassword: null,
     },
     {},
     validate
@@ -111,7 +99,8 @@ const EditProfile = ({ navigation }: any) => {
       try {
         let updatedForm = {
           ...form,
-          password: changePassword ? form.password : null,
+          newPassword: changePassword ? form.newPassword : null,
+          currentPassword: changePassword ? form.currentPassword : null,
         };
         if (form.birthDate) {
           updatedForm.birthDate = form.birthDate + " 07:00:00";
@@ -119,7 +108,7 @@ const EditProfile = ({ navigation }: any) => {
         if (image) {
           updatedForm.avatarUrl = await uploadImage(image, post);
         }
-        const res = await put("/v1/user/update", updatedForm);
+        const res = await put("/v1/user/update-profile", updatedForm);
         if (res.result) {
           navigation.goBack();
         } else {
@@ -182,28 +171,6 @@ const EditProfile = ({ navigation }: any) => {
       />
 
       <InputField
-        title="Email"
-        isRequire={true}
-        placeholder="Nhập địa chỉ email"
-        onChangeText={(value: any) => handleChange("email", value)}
-        keyboardType="email-address"
-        value={form.email}
-        icon={MailIcon}
-        error={errors.email}
-      />
-
-      <InputField
-        title="Số điện thoại"
-        isRequire={true}
-        placeholder="Nhập số điện thoại"
-        onChangeText={(value: any) => handleChange("phone", value)}
-        keyboardType="numeric"
-        value={form.phone}
-        icon={PhoneIcon}
-        error={errors.phone}
-      />
-
-      <InputField
         title="Ngày sinh"
         isRequire={false}
         placeholder="Chọn ngày sinh của bạn"
@@ -251,14 +218,26 @@ const EditProfile = ({ navigation }: any) => {
       {changePassword && (
         <View className="border border-gray-200 rounded-lg p-4 space-y-4 mt-4">
           <InputField
+            title="Mật khẩu hiện tại"
+            isRequire={true}
+            placeholder="Nhập mật khẩu hiện tại"
+            onChangeText={(value: any) =>
+              handleChange("currentPassword", value)
+            }
+            value={form.currentPassword}
+            icon={LockIcon}
+            secureTextEntry={true}
+            error={errors.currentPassword}
+          />
+          <InputField
             title="Mật khẩu mới"
             isRequire={true}
             placeholder="Nhập mật khẩu mới"
-            onChangeText={(value: any) => handleChange("password", value)}
-            value={form.password}
+            onChangeText={(value: any) => handleChange("newPassword", value)}
+            value={form.newPassword}
             icon={LockIcon}
             secureTextEntry={true}
-            error={errors.password}
+            error={errors.newPassword}
           />
           <InputField
             title="Xác nhận mật khẩu"

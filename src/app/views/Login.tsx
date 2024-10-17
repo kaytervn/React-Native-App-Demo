@@ -22,11 +22,11 @@ const Login = ({ navigation }: any) => {
   const { isLoading, showLoading, hideLoading } = useLoading();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   useBackHandler(showDialog);
-  
+
   const validate = (form: any) => {
     const newErrors: any = {};
-    if (!form.email.trim()) {
-      newErrors.email = "Tên đăng nhập không được bỏ trống";
+    if (!form.username.trim()) {
+      newErrors.username = "Tên đăng nhập không được bỏ trống";
     }
     if (!form.password) {
       newErrors.password = "Mật khẩu không được bỏ trống";
@@ -35,8 +35,8 @@ const Login = ({ navigation }: any) => {
   };
 
   const { form, errors, handleChange, isValidForm } = useForm(
-    { email: "", password: "" },
-    { email: "", password: "" },
+    { username: "", password: "" },
+    {},
     validate
   );
 
@@ -64,14 +64,14 @@ const Login = ({ navigation }: any) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: form.email,
+            username: form.username,
             password: form.password,
           }),
         });
         const data = await response.json();
         if (response.ok) {
           await AsyncStorage.setItem("accessToken", data.data.accessToken);
-          
+
           navigation.dispatch(
             CommonActions.reset({
               index: 0,
@@ -108,14 +108,13 @@ const Login = ({ navigation }: any) => {
       }
     >
       <InputField
-        title="Email đăng nhập"
+        title="Tài khoản đăng nhập"
         isRequire={true}
-        placeholder="Nhập địa chỉ email"
-        onChangeText={(value: any) => handleChange("email", value)}
-        keyboardType="email-address"
-        value={form.email}
+        placeholder="Nhập email, SĐT hoặc MSSV"
+        onChangeText={(value: any) => handleChange("username", value)}
+        value={form.username}
         icon={MailIcon}
-        error={errors.email}
+        error={errors.username}
       />
       <InputField
         title="Mật khẩu"
