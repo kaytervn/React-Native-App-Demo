@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, Image, TextInput, Text } from "react-native";
+import { View, TouchableOpacity, Image, Text } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Intro from "../../../components/Intro";
