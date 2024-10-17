@@ -6,6 +6,8 @@ const EmailPattern =
 
 const PhonePattern = /^0[35789][0-9]{8}$/;
 
+const StudentIdPattern = /^[1-9][0-9]{7}$/;
+
 const remoteUrl = "https://realtime-chat-app-api-tbaf.onrender.com";
 // const remoteUrl = "http://192.168.1.3:7979";
 const Stack = createNativeStackNavigator<{
@@ -25,8 +27,18 @@ const Stack = createNativeStackNavigator<{
   ChatList: any;
   ChatDetail: any;
   PostComment: any;
+  RequestKeyChange: any;
+  VerifyKeyChange: any;
 }>();
 
 const Tab = createBottomTabNavigator();
 const emptyBox = require("../assets/empty_box.png");
-export { Tab, Stack, EmailPattern, PhonePattern, remoteUrl, emptyBox };
+export {
+  Tab,
+  Stack,
+  EmailPattern,
+  PhonePattern,
+  remoteUrl,
+  emptyBox,
+  StudentIdPattern,
+};

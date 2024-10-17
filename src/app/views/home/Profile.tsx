@@ -1,9 +1,11 @@
-import { View, Text, Image, Touchable, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import React, { useEffect, useState } from "react";
 import Intro from "@/src/components/Intro";
 import {
   CalendarIcon,
+  IdCardIcon,
   InfoIcon,
+  KeyRoundIcon,
   LogOutIcon,
   PencilIcon,
   PhoneIcon,
@@ -27,6 +29,7 @@ const Profile = ({ navigation }: any) => {
     phone: "Đang tải",
     birthDate: "Đang tải",
     bio: "Đang tải",
+    studentId: "Đang tải",
     avatarUrl: null,
     role: { name: "Đang tải" },
   });
@@ -85,6 +88,11 @@ const Profile = ({ navigation }: any) => {
           value={profile.phone}
         />
         <InfoItem
+          icon={<IdCardIcon size={24} color="royalblue" />}
+          label="Mã sinh viên"
+          value={profile.studentId}
+        />
+        <InfoItem
           icon={<CalendarIcon size={24} color="royalblue" />}
           label="Ngày Sinh"
           value={profile.birthDate}
@@ -96,6 +104,12 @@ const Profile = ({ navigation }: any) => {
         />
       </View>
 
+      <Button
+        icon={KeyRoundIcon}
+        title="CẬP NHẬT THÔNG TIN"
+        color="royalblue"
+        onPress={() => navigation.navigate("RequestKeyChange")}
+      />
       <Button
         icon={LogOutIcon}
         title="ĐĂNG XUẤT"
