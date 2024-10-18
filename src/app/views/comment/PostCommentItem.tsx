@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ChevronUp, ChevronDown } from "lucide-react-native";
 import { CommentModel } from "@/src/models/comment/CommentModel";
-import { ActivityIndicator } from 'react-native';
-import ChildCommentItem from './PostChildCommentItem';
-import MenuClick from '@/src/components/post/MenuClick';
-import useFetch from '../../hooks/useFetch';
-import { successToast } from '@/src/types/toast';
-import Toast from 'react-native-toast-message';
+import { ActivityIndicator } from "react-native";
+import ChildCommentItem from "./PostChildCommentItem";
+import MenuClick from "@/src/components/post/MenuClick";
+import useFetch from "../../hooks/useFetch";
+import { successToast } from "@/src/types/toast";
+import Toast from "react-native-toast-message";
+import { avatarDefault } from "@/src/types/constant";
+import ModalDelete from "@/src/components/post/ModalDelete";
 
 const PostCommentItem = ({
   item,
@@ -17,13 +26,13 @@ const PostCommentItem = ({
   expandedComments,
   loadingChildren,
   navigation,
-  onItemUpdate
-} : any ) => {
+  onItemUpdate,
+  onItemDelete,
+}: any) => {
   const { post, del, loading } = useFetch();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
-  
 
   const handleLikeComment = async (comment: CommentModel) => {
     let updatedComment = { ...comment };
@@ -32,7 +41,9 @@ const PostCommentItem = ({
         updatedComment.isReacted = 0;
         updatedComment.totalReactions = comment.totalReactions - 1;
         onItemUpdate(updatedComment);
-        const reactResponse = await del(`/v1/comment-reaction/delete/${comment._id}`);
+        const reactResponse = await del(
+          `/v1/comment-reaction/delete/${comment._id}`
+        );
         if (!reactResponse.result) {
           throw new Error("Failed to unlike comment");
         }
@@ -48,27 +59,29 @@ const PostCommentItem = ({
         }
       }
     } catch (error) {
-      onItemUpdate(item); 
+      onItemUpdate(item);
       console.error("Error updating like status:", error);
     }
-  
   };
 
   const handleUpdate = () => {
     setShowMenu(false);
-    navigation.navigate("PostCommentUpdate", 
-    { 
-      comment_id: item._id , 
-      onPostUpdate: (updatedItem: CommentModel | null) => {
+    navigation.navigate("PostCommentUpdate", {
+      comment_id: item._id,
+      onItemUpdate: (updatedItem: CommentModel | null) => {
         if (updatedItem) {
-          handlePostUpdate(updatedItem);
+          handleItemUpdate(updatedItem);
         }
       },
-  }, );
+    });
   };
 
-  const handlePostUpdate = (updatedItem: CommentModel) => {
+  const handleItemUpdate = (updatedItem: CommentModel) => {
     onItemUpdate(updatedItem);
+  };
+
+  const handleMenuPress = () => {
+    setShowMenu(!showMenu);
   };
 
   const handleDeletePress = () => {
@@ -76,22 +89,26 @@ const PostCommentItem = ({
     setShowDeleteModal(true);
   };
 
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
+
   const handleDeleteConfirm = async () => {
     setShowDeleteModal(false);
-    setLoadingDialog(true)
+    setLoadingDialog(true);
     try {
-      const response = await del(`/v1/comment/delete/${postItem._id}`);
+      const response = await del(`/v1/comment/delete/${item._id}`);
       if (response.result) {
-        onPostDelete(postItem._id);
-        Toast.show(successToast("Xóa bài đăng thành công!"))
+        onItemDelete(item._id);
+        Toast.show(successToast("Xóa bình luận thành công!"));
       } else {
         throw new Error("Failed to delete post");
       }
     } catch (error) {
-      console.error("Error deleting post:", error);
-      Alert.alert("Error", "Failed to delete the post. Please try again.");
+      console.error("Lỗi xóa bình luận:", error);
+      Alert.alert("Lỗi xóa bình luận. Vui lòng thử lại.");
     } finally {
-      setLoadingDialog(false)
+      setLoadingDialog(false);
     }
   };
 
@@ -100,11 +117,12 @@ const PostCommentItem = ({
     if (!children) return null;
     return (
       <View style={styles.childCommentsContainer}>
-        {children.map((child: { _id: any; }) => (
-          <ChildCommentItem 
-            key={child._id} 
-            item={child} 
+        {children.map((child: { _id: any }) => (
+          <ChildCommentItem
+            key={child._id}
+            item={child}
             onItemUpdate={onItemUpdate}
+            onItemDelete={onItemDelete}
           />
         ))}
       </View>
@@ -113,18 +131,27 @@ const PostCommentItem = ({
 
   return (
     <View style={styles.commentContainer}>
-      <Image source={{ uri: item.user.avatarUrl }} style={styles.avatar} />
+      <Image
+        source={
+          item.user.avatarUrl ? { uri: item.user.avatarUrl } : avatarDefault
+        }
+        style={styles.avatar}
+      />
       <View style={styles.commentContent}>
         <Text style={styles.authorName}>{item.user.displayName}</Text>
         <Text style={styles.commentText}>{item.content}</Text>
         {item.imageUrl && (
           <View style={styles.imageWrapper}>
-            <Image source={{ uri: item.imageUrl }} style={styles.commentImage} resizeMode="contain" />
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.commentImage}
+              resizeMode="contain"
+            />
           </View>
         )}
         <View style={styles.commentActions}>
-          <TouchableOpacity 
-            style={styles.actionButton} 
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={() => handleLikeComment(item)}
           >
             <Ionicons
@@ -134,15 +161,11 @@ const PostCommentItem = ({
             />
             <Text style={styles.actionText}>{item.totalReactions}</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => toggleChildComments(item._id)}
           >
-            <Ionicons
-              name="chatbubble-outline"
-              size={18}
-              color="#7f8c8d"
-            />
+            <Ionicons name="chatbubble-outline" size={18} color="#7f8c8d" />
             <Text style={styles.actionText}>{item.totalChildren}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleReply(item)}>
@@ -151,40 +174,62 @@ const PostCommentItem = ({
         </View>
 
         {item.totalChildren > 0 && (
-          <TouchableOpacity onPress={() => toggleChildComments(item._id)} style={styles.viewRepliesButton}>
+          <TouchableOpacity
+            onPress={() => toggleChildComments(item._id)}
+            style={styles.viewRepliesButton}
+          >
             {loadingChildren[item._id] ? (
               <ActivityIndicator size="small" color="#059BF0" />
             ) : (
               <>
                 <Text style={styles.viewRepliesText}>
-                  {expandedComments[item._id] ? "Ẩn phản hồi" : `Xem ${item.totalChildren} phản hồi`}
+                  {expandedComments[item._id]
+                    ? "Ẩn phản hồi"
+                    : `Xem ${item.totalChildren} phản hồi`}
                 </Text>
-                {expandedComments[item._id] ? <ChevronUp size={16} color="#059BF0" /> : <ChevronDown size={16} color="#059BF0" />}
+                {expandedComments[item._id] ? (
+                  <ChevronUp size={16} color="#059BF0" />
+                ) : (
+                  <ChevronDown size={16} color="#059BF0" />
+                )}
               </>
             )}
           </TouchableOpacity>
         )}
 
         {renderChildComments(item._id)}
-
-        <MenuClick
-          titleUpdate={"Chỉnh sửa bình luận"}
-          titleDelete={"Xóa bình luận"} 
-          isVisible={showMenu}
-          onClose={() => setShowMenu(false)}
-          onUpdate={handleUpdate}
-          onDelete={handleDeletePress}      />
       </View>
+      {item.isOwner == 1 && (
+        <TouchableOpacity style={styles.menuIcon} onPress={handleMenuPress}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#7f8c8d" />
+        </TouchableOpacity>
+      )}
+
+      <MenuClick
+        titleUpdate={"Chỉnh sửa bình luận"}
+        titleDelete={"Xóa bình luận"}
+        isVisible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onUpdate={handleUpdate}
+        onDelete={handleDeletePress}
+      />
+
+      <ModalDelete
+        isVisible={showDeleteModal}
+        title="Bạn sẽ xóa bình luận này chứ?"
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   commentContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
   avatar: {
     width: 40,
@@ -192,11 +237,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
-  commentContent: {
-    
-  },
+  commentContent: {},
   authorName: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
   },
   commentText: {
@@ -205,47 +248,57 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     marginTop: 10,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    width: '100%',
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    width: "100%",
   },
   commentImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   commentActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 15,
   },
   actionText: {
     marginLeft: 5,
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
   replyButtonText: {
-    color: '#999999',
+    color: "#999999",
     fontSize: 14,
-    fontWeight: 'semibold',
+    fontWeight: "semibold",
   },
   viewRepliesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 5,
   },
   viewRepliesText: {
-    color: '#059BF0',
+    color: "#059BF0",
     marginRight: 5,
   },
   childCommentsContainer: {
     marginLeft: 20,
     marginTop: 10,
+  },
+
+  //menu
+  menuIcon: {
+    position: "absolute",
+    top: 10,
+    right: 0,
+    zIndex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
 });
 

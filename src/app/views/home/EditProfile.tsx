@@ -55,8 +55,8 @@ const EditProfile = ({ navigation }: any) => {
       birthDate: "",
       avatarUrl: null,
       roleId: null,
-      newPassword: null,
-      currentPassword: null,
+      newPassword: "",
+      currentPassword: "",
     },
     {},
     validate
@@ -68,7 +68,9 @@ const EditProfile = ({ navigation }: any) => {
       setForm({
         ...res.data,
         birthDate: res.data.birthDate ? getDate(res.data.birthDate) : null,
-        roleId: res.data.role._id,
+        roleId: res.data.role._id,      
+        newPassword: "",
+        currentPassword: "",
         password: null,
       });
     };

@@ -10,51 +10,77 @@ import {
   Alert,
 } from "react-native";
 import { BottomSheetModal, BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { Send, Heart, MessageCircle, ImageIcon, ChevronUp, ChevronDown, X, Bold } from "lucide-react-native";
+import {
+  Send,
+  Heart,
+  MessageCircle,
+  ImageIcon,
+  ChevronUp,
+  ChevronDown,
+  X,
+  Bold,
+} from "lucide-react-native";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
 import { CommentModel } from "@/src/models/comment/CommentModel";
-import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '@/src/types/utils';
+import * as ImagePicker from "expo-image-picker";
+import { uploadImage } from "@/src/types/utils";
 import { Ionicons } from "@expo/vector-icons";
 
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
-import PostCommentItem from "../comment/PostCommentItem";
+import PostCommentItem from "./PostCommentItem";
+import MenuClick from "@/src/components/post/MenuClick";
+import { avatarDefault } from "@/src/types/constant";
 
-
-const PostComment= ({ 
+const PostComment = ({
   navigation,
-  postItem, 
-  onCommentAdded 
+  postItem,
+  onItemAdded,
+  onItemDeleted,
+  userAvatar,
 }: any) => {
   const { get, post, del, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [comments, setComments] = useState<CommentModel[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [totalComments, setTotalComments] = useState(postItem.totalComments);
-  const [expandedComments, setExpandedComments] = useState<{ [key: string]: CommentModel[] }>({});
-  const [loadingChildren, setLoadingChildren] = useState<{ [key: string]: boolean }>({});
+  const [expandedComments, setExpandedComments] = useState<{
+    [key: string]: CommentModel[];
+  }>({});
+  const [loadingChildren, setLoadingChildren] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [replyingTo, setReplyingTo] = useState<CommentModel | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const commentSize = 10;
 
-  const fetchComments = useCallback(async (pageNumber: number) => {
-    try {
-      const res = await get(`/v1/comment/list`, { comment: postItem._id, page: pageNumber, size: commentSize, ignoreChildren: 1 });
-      const newComments = res.data.content;
-      setComments(prev => pageNumber === 0 ? newComments : [...prev, ...newComments]);
-      setHasMore(newComments.length === commentSize);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
-  }, [get, postItem._id]);
-
-  
+  const fetchComments = useCallback(
+    async (pageNumber: number) => {
+      try {
+        console.log;
+        const res = await get(`/v1/comment/list`, {
+          post: postItem._id,
+          page: pageNumber,
+          size: commentSize,
+          ignoreChildren: 1,
+        });
+        const newComments = res.data.content;
+        console.log("newComments", newComments);
+        setComments((prev) =>
+          pageNumber === 0 ? newComments : [...prev, ...newComments]
+        );
+        setHasMore(newComments.length === commentSize);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      }
+    },
+    [get, postItem._id]
+  );
 
   const handleLoadMoreComments = () => {
     if (hasMore && !loading) {
@@ -62,31 +88,51 @@ const PostComment= ({
     }
   };
 
-  const onItemUpdate = async (updatedComment: CommentModel) => {
+  const handleItemUpdate = async (updatedComment: CommentModel) => {
     if (updatedComment.isChildren) {
-      setExpandedComments(prevExpandedComments => {
+      setExpandedComments((prevExpandedComments) => {
         const updatedExpandedComments = { ...prevExpandedComments };
         for (const parentId in updatedExpandedComments) {
-          updatedExpandedComments[parentId] = updatedExpandedComments[parentId].map(c => 
-            c._id === updatedComment._id ? updatedComment : c
-          );
+          updatedExpandedComments[parentId] = updatedExpandedComments[
+            parentId
+          ].map((c) => (c._id === updatedComment._id ? updatedComment : c));
         }
         return updatedExpandedComments;
       });
     } else {
-      // console.log("updatedComment", updatedComment.totalReactions)
-      
-      setComments(prevComments => {
-        const index = prevComments.findIndex(comment => comment._id === updatedComment._id);
+      setComments((prevComments) => {
+        const index = prevComments.findIndex(
+          (comment) => comment._id === updatedComment._id
+        );
         if (index !== -1) {
           const newComments = [...prevComments];
-          console.log("old", newComments[index].totalReactions)
+          console.log("old", newComments[index].totalReactions);
           newComments[index] = updatedComment;
           return newComments;
         }
         return prevComments;
       });
     }
+  };
+
+  const handleItemDelete = (itemId: string, isChildren: boolean) => {
+    if (isChildren) {
+      setExpandedComments((prevExpandedComments) => {
+        const updatedExpandedComments = { ...prevExpandedComments };
+        for (const parentId in updatedExpandedComments) {
+          updatedExpandedComments[parentId] = updatedExpandedComments[
+            parentId
+          ].filter((comment) => comment._id !== itemId);
+        }
+        return updatedExpandedComments;
+      });
+    } else {
+      setComments((prevComments) =>
+        prevComments.filter((comment) => comment._id !== itemId)
+      );
+    }
+    setTotalComments(totalComments - 1);
+    onItemDeleted();
   };
 
   const createComment = async () => {
@@ -97,7 +143,7 @@ const PostComment= ({
         post: postItem._id,
         content: newComment,
         parent: replyingTo ? replyingTo._id : null,
-        imageUrl: ""
+        imageUrl: "",
       };
 
       if (selectedImage) {
@@ -111,13 +157,13 @@ const PostComment= ({
         // Refresh top-level comments if not replying
         fetchComments(0);
       }
-      setNewComment('');
+      setNewComment("");
       setSelectedImage(null);
       setTotalComments(totalComments + 1);
       setReplyingTo(null);
-      onCommentAdded();
+      onItemAdded();
     } catch (error) {
-      console.error('Error posting comment:', error);
+      console.error("Error posting comment:", error);
     } finally {
       setLoadingDialog(false);
     }
@@ -137,22 +183,25 @@ const PostComment= ({
 
   // Child comments
   const fetchChildComments = async (parentId: string) => {
-    setLoadingChildren(prev => ({ ...prev, [parentId]: true }));
+    setLoadingChildren((prev) => ({ ...prev, [parentId]: true }));
     try {
-      const res = await get(`/v1/comment/list`, { parent: parentId, isPaged: 0 });
+      const res = await get(`/v1/comment/list`, {
+        parent: parentId,
+        isPaged: 0,
+      });
       const childComments = res.data.content;
-      setExpandedComments(prev => ({ ...prev, [parentId]: childComments }));
+      setExpandedComments((prev) => ({ ...prev, [parentId]: childComments }));
     } catch (error) {
-      console.error('Error fetching child comments:', error);
+      console.error("Error fetching child comments:", error);
     } finally {
-      setLoadingChildren(prev => ({ ...prev, [parentId]: false }));
+      setLoadingChildren((prev) => ({ ...prev, [parentId]: false }));
     }
   };
 
   const toggleChildComments = (commentId: string) => {
     if (expandedComments[commentId]) {
       // If already expanded, collapse
-      setExpandedComments(prev => {
+      setExpandedComments((prev) => {
         const newState = { ...prev };
         delete newState[commentId];
         return newState;
@@ -172,11 +221,11 @@ const PostComment= ({
     setReplyingTo(null);
   };
 
-
   const renderComment = ({ item }: { item: CommentModel }) => (
-   <PostCommentItem
+    <PostCommentItem
       item={item}
-      onItemUpdate={onItemUpdate}
+      onItemUpdate={handleItemUpdate}
+      onItemDelete={handleItemDelete}
       toggleChildComments={toggleChildComments}
       handleReply={handleReply}
       expandedComments={expandedComments}
@@ -185,58 +234,13 @@ const PostComment= ({
     />
   );
 
-  // const handleUpdate = () => {
-  //   setShowMenu(false);
-  //   navigation.navigate("PostCreateUpdate", 
-  //   { 
-  //     comment_id: comment._id , 
-  //     handleCommentUpdate: handleCommentUpdate
-  // }, );
-  // };
-
-  // const handleCommentUpdate = (handleCommentUpdate: CommentModel) => {
-  //   setComments((prevComments) => {
-  //     const index = prevComments.findIndex((comment) => comment._id === handleCommentUpdate._id);
-  //     if (index !== -1) {
-  //       const newComments = [...prevComments];
-  //       newComments[index] = handleCommentUpdate;
-  //       return newComments;
-  //     }
-  //     return prevComments;
-  //   });
-  // };
-  
-  // const handleDeletePress = () => {
-  //   setShowMenu(false);
-  //   setShowDeleteModal(true);
-  // };
-  
-  // const handleDeleteConfirm = async () => {
-  //   setShowDeleteModal(false);
-  //   setLoadingDialog(true)
-  //   try {
-  //     const response = await del(`/v1/comment/delete/${comment._id}`);
-  //     if (response.result) {
-  //       setComments((prevComments) => prevComments.filter((c) => c._id !== comment._id));
-  //       Toast.show(successToast("Xóa bài đăng thành công!"))
-  //     } else {
-  //       throw new Error("Failed to delete comment");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error deleting comment:", error);
-  //     Alert.alert("Error", "Failed to delete the comment. Please try again.");
-  //   } finally {
-  //     setLoadingDialog(false)
-  //   }
-  // };
-
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
       <View style={styles.postDetailsContainer}>
-            <Text style={styles.totalText}>
-              {postItem.totalReactions} Lượt thích · {totalComments} Bình luận
-            </Text>
+        <Text style={styles.totalText}>
+          {postItem.totalReactions} Lượt thích · {totalComments} Bình luận
+        </Text>
       </View>
       <BottomSheetFlatList
         data={comments}
@@ -251,21 +255,31 @@ const PostComment= ({
           ) : null
         }
       />
-       {replyingTo && (
+      {replyingTo && (
         <View style={styles.replyingToContainer}>
-          <Text style={styles.replyingToText}>Phản hồi {replyingTo.user.displayName}</Text>
-          <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
+          <Text style={styles.replyingToText}>
+            Phản hồi {replyingTo.user.displayName}
+          </Text>
+          <TouchableOpacity
+            onPress={cancelReply}
+            style={styles.cancelReplyButton}
+          >
             <X size={20} color="#059BF0" />
           </TouchableOpacity>
         </View>
       )}
       <View style={styles.inputContainer}>
-        <Image source={{ uri: postItem.user.ava || undefined }} style={styles.avatar} />
+        <Image
+          source={userAvatar ? { uri: userAvatar } : avatarDefault}
+          style={styles.avatar}
+        />
         <TextInput
           style={styles.input}
           value={newComment}
           onChangeText={setNewComment}
-          placeholder={!replyingTo ? "Thêm bình luận..." : "Phản hồi bình luận..."}
+          placeholder={
+            !replyingTo ? "Thêm bình luận..." : "Phản hồi bình luận..."
+          }
           multiline
         />
         <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
@@ -274,38 +288,27 @@ const PostComment= ({
         <TouchableOpacity style={styles.iconButton} onPress={createComment}>
           <Send size={20} color="#059BF0" />
         </TouchableOpacity>
-       
       </View>
       {selectedImage && (
         <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
       )}
-
-      {/* <MenuClick
-        titleUpdate={"Chỉnh sửa bài viết"}
-        titleDelete={"Xóa bài viết"} 
-        isVisible={showMenu}
-        onClose={() => setShowMenu(false)}
-        onUpdate={handleUpdate}
-        onDelete={handleDeletePress}      /> */}
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 20,
     marginRight: 10,
   },
 
   authorName: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
   },
   commentText: {
@@ -313,26 +316,26 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   commentActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 15,
   },
   actionText: {
     marginLeft: 5,
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
   },
   input: {
     flex: 1,
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     marginVertical: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   commentList: {
     flexGrow: 1,
@@ -355,32 +358,30 @@ const styles = StyleSheet.create({
   postDetailsContainer: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
   totalText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
 
   commentContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
-  commentContent: {
-    
-  },
+  commentContent: {},
   imageWrapper: {
     marginTop: 10,
-    alignItems: 'flex-start',  // Changed from 'center' to 'flex-start'
-    justifyContent: 'flex-start',
-    width: '100%',  // Ensure the wrapper takes full width
+    alignItems: "flex-start", // Changed from 'center' to 'flex-start'
+    justifyContent: "flex-start",
+    width: "100%", // Ensure the wrapper takes full width
   },
   commentImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
-    alignSelf: 'flex-start',  // Added to ensure the image aligns to the start
+    alignSelf: "flex-start", // Added to ensure the image aligns to the start
   },
 
   //chilren comment
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   childCommentItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 10,
   },
   childAvatar: {
@@ -398,41 +399,39 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginRight: 10,
   },
-  childCommentContent: {
-    
-  },
+  childCommentContent: {},
   childCommentImage: {
-    width: '100%',
+    width: "100%",
     height: 150,
     borderRadius: 8,
     marginTop: 5,
   },
   viewRepliesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 5,
   },
   viewRepliesText: {
-    color: '#059BF0',
+    color: "#059BF0",
     marginRight: 5,
   },
+
   //Reply
-  
   replyButtonText: {
-    color: '#999999',
+    color: "#999999",
     fontSize: 14,
-    fontWeight: 'semibold',
+    fontWeight: "semibold",
   },
   replyingToContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 10,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   replyingToText: {
     fontSize: 14,
-    color: '#555',
+    color: "#555",
   },
   cancelReplyButton: {
     padding: 5,

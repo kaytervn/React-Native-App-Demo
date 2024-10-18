@@ -21,6 +21,7 @@ import { errorToast, successToast } from "@/src/types/toast";
 import ModalStatus from "@/src/components/post/ModalStatus";
 import PostItem from "@/src/app/views/post/PostItem";
 import { PostModel } from "@/src/models/post/PostModel";
+import { avatarDefault } from "@/src/types/constant";
 
 const { height } = Dimensions.get("window");
 
@@ -218,7 +219,7 @@ const PostCreateUpdate = ({
 
       <View style={styles.userContainer}>
         <Image
-          source={{ uri: userAvatar || "https://via.placeholder.com/100" }}
+          source={userAvatar ? { uri: userAvatar } : avatarDefault}
           style={styles.avatar}
         />
         <View>

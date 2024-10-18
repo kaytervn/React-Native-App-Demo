@@ -20,9 +20,9 @@ import { ChevronsLeftRightIcon, Send } from "lucide-react-native";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
 import { useFocusEffect } from "expo-router";
 import BottomSheet, { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import PostComment from "../post/PostComment";
+import PostComment from "../comment/PostComment";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
+import defaultUserImg from "../../../assets/user_icon.png"
 
 const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
   const { get, loading } = useFetch();
@@ -169,6 +169,18 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
     }
   }, [selectedPost]);
 
+  const handleCommentDeleted = useCallback(() => {
+    if (selectedPost) {
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post._id === selectedPost._id 
+            ? { ...post, totalComments: post.totalComments - 1 } 
+            : post
+        )
+      );
+    }
+  }, [selectedPost]);
+
   const renderItem = ({ item }: { item: PostModel }) => (
     <PostItem
       postItem={item}
@@ -193,10 +205,10 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
       }}
       onLongPress={() => {}}
     >
-      <Image source={{ uri: userAvatar || undefined }} style={styles.avatar} />
+      <Image source={userAvatar ? { uri: userAvatar } : defaultUserImg} style={styles.avatar} />
       <Text style={styles.inputPlaceholder}>Bạn đang nghĩ gì?</Text>
       <View style={styles.sendButton}>
-        <Send size={20} color="#059BF0" />
+        <Send size={24} color="#059BF0" />
       </View>
     </TouchableOpacity>
   );
@@ -290,8 +302,10 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
       >
         {selectedPost && (
           <PostComment
+            userAvatar={userAvatar}
             postItem={selectedPost}
-            onCommentAdded={handleCommentAdded}
+            onItemAdded={handleCommentAdded}
+            onItemDeleted={handleCommentDeleted}
           />
         )}
       </BottomSheetModal>
@@ -388,8 +402,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "white",
     borderRadius: 30,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
     marginVertical: 15,
     marginHorizontal: 15,
     shadowColor: "#000",
@@ -415,7 +429,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   sendButton: {
-    padding: 5,
+    padding: 10,
   },
 });
 
