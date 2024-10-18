@@ -29,6 +29,7 @@ const Stack = createNativeStackNavigator<{
   PostComment: any;
   RequestKeyChange: any;
   VerifyKeyChange: any;
+  CommentUpdate: any;
 }>();
 
 const Tab = createBottomTabNavigator();

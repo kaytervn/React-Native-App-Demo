@@ -18,6 +18,8 @@ import { successToast } from "@/src/types/toast";
 import Toast from "react-native-toast-message";
 import { avatarDefault } from "@/src/types/constant";
 import ModalDelete from "@/src/components/post/ModalDelete";
+import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
+import { LoadingDialog } from "@/src/components/Dialog";
 
 const PostCommentItem = ({
   item,
@@ -28,11 +30,21 @@ const PostCommentItem = ({
   navigation,
   onItemUpdate,
   onItemDelete,
-}: any) => {
+}: {
+  item: CommentModel,
+  toggleChildComments: any,
+  handleReply: any,
+  expandedComments: any,
+  loadingChildren: any,
+  navigation: any,
+  onItemUpdate: any,
+  onItemDelete: any,
+} ) => {
   const { post, del, loading } = useFetch();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
+  
 
   const handleLikeComment = async (comment: CommentModel) => {
     let updatedComment = { ...comment };
@@ -66,8 +78,8 @@ const PostCommentItem = ({
 
   const handleUpdate = () => {
     setShowMenu(false);
-    navigation.navigate("PostCommentUpdate", {
-      comment_id: item._id,
+    navigation.navigate("CommentUpdate", {
+      item: item,
       onItemUpdate: (updatedItem: CommentModel | null) => {
         if (updatedItem) {
           handleItemUpdate(updatedItem);
@@ -123,6 +135,7 @@ const PostCommentItem = ({
             item={child}
             onItemUpdate={onItemUpdate}
             onItemDelete={onItemDelete}
+            navigation={navigation}
           />
         ))}
       </View>
@@ -131,6 +144,7 @@ const PostCommentItem = ({
 
   return (
     <View style={styles.commentContainer}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
       <Image
         source={
           item.user.avatarUrl ? { uri: item.user.avatarUrl } : avatarDefault

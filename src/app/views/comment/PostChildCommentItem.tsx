@@ -63,8 +63,8 @@ const ChildCommentItem = ({
 
   const handleUpdate = () => {
     setShowMenu(false);
-    navigation.navigate("PostCommentUpdate", {
-      comment_id: item._id,
+    navigation.navigate("CommentUpdate", {
+      item: item,
       onItemUpdate: (updatedItem: CommentModel | null) => {
         if (updatedItem) {
           handleItemUpdate(updatedItem);

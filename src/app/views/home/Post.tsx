@@ -302,6 +302,7 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
       >
         {selectedPost && (
           <PostComment
+            navigation={navigation}
             userAvatar={userAvatar}
             postItem={selectedPost}
             onItemAdded={handleCommentAdded}

@@ -18,6 +18,7 @@ import ChatList from "./views/chat/ChatList";
 import ChatDetail from "./views/chat/ChatDetail";
 import RequestKeyChange from "./views/home/RequestKeyChange";
 import VerifyKeyChange from "./views/home/VerifyKeyChange";
+import CommentUpdate from "./views/comment/CommentUpdate";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -40,6 +41,7 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ChatDetail" component={ChatDetail} />
     <Stack.Screen name="RequestKeyChange" component={RequestKeyChange} />
     <Stack.Screen name="VerifyKeyChange" component={VerifyKeyChange} />
+    <Stack.Screen name="CommentUpdate" component={CommentUpdate} />
   </Stack.Navigator>
 );
 

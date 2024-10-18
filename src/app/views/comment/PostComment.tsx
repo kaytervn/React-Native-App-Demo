@@ -33,6 +33,7 @@ import { successToast } from "@/src/types/toast";
 import PostCommentItem from "./PostCommentItem";
 import MenuClick from "@/src/components/post/MenuClick";
 import { avatarDefault } from "@/src/types/constant";
+import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
 
 const PostComment = ({
   navigation,
@@ -55,14 +56,13 @@ const PostComment = ({
     [key: string]: boolean;
   }>({});
   const [replyingTo, setReplyingTo] = useState<CommentModel | null>(null);
-  const [showMenu, setShowMenu] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [modalSingleImageVisible, setModalSingleImageVisible] = useState(false)
   const commentSize = 10;
 
   const fetchComments = useCallback(
     async (pageNumber: number) => {
+      setLoadingDialog(true);
       try {
-        console.log;
         const res = await get(`/v1/comment/list`, {
           post: postItem._id,
           page: pageNumber,
@@ -70,13 +70,14 @@ const PostComment = ({
           ignoreChildren: 1,
         });
         const newComments = res.data.content;
-        console.log("newComments", newComments);
         setComments((prev) =>
           pageNumber === 0 ? newComments : [...prev, ...newComments]
         );
         setHasMore(newComments.length === commentSize);
       } catch (error) {
         console.error("Error fetching comments:", error);
+      } finally{
+        setLoadingDialog(false);
       }
     },
     [get, postItem._id]
@@ -106,7 +107,6 @@ const PostComment = ({
         );
         if (index !== -1) {
           const newComments = [...prevComments];
-          console.log("old", newComments[index].totalReactions);
           newComments[index] = updatedComment;
           return newComments;
         }
@@ -159,14 +159,12 @@ const PostComment = ({
       }
       setNewComment("");
       setSelectedImage(null);
-      setTotalComments(totalComments + 1);
       setReplyingTo(null);
+      setTotalComments(totalComments + 1);
       onItemAdded();
     } catch (error) {
       console.error("Error posting comment:", error);
-    } finally {
-      setLoadingDialog(false);
-    }
+    } 
   };
 
   const pickImage = async () => {
@@ -195,6 +193,7 @@ const PostComment = ({
       console.error("Error fetching child comments:", error);
     } finally {
       setLoadingChildren((prev) => ({ ...prev, [parentId]: false }));
+      setLoadingDialog(false);
     }
   };
 
@@ -292,6 +291,8 @@ const PostComment = ({
       {selectedImage && (
         <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
       )}
+
+     
     </View>
   );
 };

@@ -143,9 +143,7 @@ const PostCreateUpdate = ({
         res = await post("/v1/post/create", postBody);
       }
 
-     
-    
-    
+
       if (res.result) {
         if (postItem && isUpdating) {
           // Chỉ cập nhật postItem nếu nó tồn tại (trong trường hợp cập nhật)
