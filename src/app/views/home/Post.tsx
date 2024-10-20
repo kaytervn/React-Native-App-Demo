@@ -238,6 +238,10 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
     }, [navigation, route.params?.updatedPost])
   );
 
+  const handleReply = () => {
+    bottomSheetModalRef.current?.snapToIndex(1);
+  };
+
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
@@ -307,6 +311,7 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
             postItem={selectedPost}
             onItemAdded={handleCommentAdded}
             onItemDeleted={handleCommentDeleted}
+            onItemReply={handleReply}
           />
         )}
       </BottomSheetModal>

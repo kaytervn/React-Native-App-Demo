@@ -22,6 +22,10 @@ import ModalStatus from "@/src/components/post/ModalStatus";
 import PostItem from "@/src/app/views/post/PostItem";
 import { PostModel } from "@/src/models/post/PostModel";
 import { avatarDefault } from "@/src/types/constant";
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+]);
 
 const { height } = Dimensions.get("window");
 
@@ -152,8 +156,10 @@ const PostCreateUpdate = ({
             postItem.imageUrls = postBody.imageUrls;
           }
           postItem.kind = postBody.kind;
+          setLoadingDialog(false)
           route.params?.onPostUpdate(postItem);
           Toast.show(successToast("Cập nhật bài đăng thành công!"))
+          
         } else {
           setLoadingDialog(true)
           route.params?.onRefresh();

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ChevronUp, ChevronDown } from "lucide-react-native";
@@ -21,6 +22,8 @@ import ModalDelete from "@/src/components/post/ModalDelete";
 import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
 import { LoadingDialog } from "@/src/components/Dialog";
 
+
+
 const PostCommentItem = ({
   item,
   toggleChildComments,
@@ -30,6 +33,7 @@ const PostCommentItem = ({
   navigation,
   onItemUpdate,
   onItemDelete,
+
 }: {
   item: CommentModel,
   toggleChildComments: any,
@@ -39,12 +43,17 @@ const PostCommentItem = ({
   navigation: any,
   onItemUpdate: any,
   onItemDelete: any,
+
 } ) => {
   const { post, del, loading } = useFetch();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
-  
+  const [isModalImageVisible, setIsModalImageVisible] = useState(false);
+
+  const handleImagePress = () => {
+    setIsModalImageVisible(true);
+  };
 
   const handleLikeComment = async (comment: CommentModel) => {
     let updatedComment = { ...comment };
@@ -133,13 +142,22 @@ const PostCommentItem = ({
           <ChildCommentItem
             key={child._id}
             item={child}
-            onItemUpdate={onItemUpdate}
-            onItemDelete={onItemDelete}
+            onItemUpdate={handleChildUpdate}
+            onItemDelete={handleChildDelete}
             navigation={navigation}
           />
         ))}
       </View>
     );
+  };
+
+  const handleChildUpdate = (updatedItem: CommentModel) => {
+    onItemUpdate(updatedItem);
+  };
+
+  const handleChildDelete = (childId: string) => {
+    item.totalChildren--;
+    onItemDelete(childId, true);
   };
 
   return (
@@ -155,13 +173,13 @@ const PostCommentItem = ({
         <Text style={styles.authorName}>{item.user.displayName}</Text>
         <Text style={styles.commentText}>{item.content}</Text>
         {item.imageUrl && (
-          <View style={styles.imageWrapper}>
+            <TouchableOpacity onPress={handleImagePress} style={styles.imageWrapper}>
             <Image
               source={{ uri: item.imageUrl }}
               style={styles.commentImage}
               resizeMode="contain"
             />
-          </View>
+          </TouchableOpacity>
         )}
         <View style={styles.commentActions}>
           <TouchableOpacity
@@ -213,11 +231,18 @@ const PostCommentItem = ({
 
         {renderChildComments(item._id)}
       </View>
+      
       {item.isOwner == 1 && (
         <TouchableOpacity style={styles.menuIcon} onPress={handleMenuPress}>
           <Ionicons name="ellipsis-horizontal" size={20} color="#7f8c8d" />
         </TouchableOpacity>
       )}
+
+      <ModalSingleImageComponent
+        imageUri={item.imageUrl}
+        isVisible={isModalImageVisible}
+        onClose={() => setIsModalImageVisible(false)}
+      />
 
       <MenuClick
         titleUpdate={"Chỉnh sửa bình luận"}
@@ -251,7 +276,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
-  commentContent: {},
+  commentContent: {
+    flex: 1
+  },
   authorName: {
     fontWeight: "bold",
     marginBottom: 5,

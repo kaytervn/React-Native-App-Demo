@@ -15,6 +15,8 @@ import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
 import ModalDelete from "@/src/components/post/ModalDelete";
 import { avatarDefault } from "@/src/types/constant";
+import { LoadingDialog } from "@/src/components/Dialog";
+import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
 
 const ChildCommentItem = ({
   item,
@@ -26,7 +28,11 @@ const ChildCommentItem = ({
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDialog, setLoadingDialog] = useState(false);
+  const [isModalImageVisible, setIsModalImageVisible] = useState(false);
 
+  const handleImagePress = () => {
+    setIsModalImageVisible(true);
+  };
   const handleLikeComment = async (comment: CommentModel) => {
     let updatedComment = { ...comment };
     try {
@@ -108,6 +114,7 @@ const ChildCommentItem = ({
 
   return (
     <View style={styles.childCommentItem}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
       <Image
         source={
           item.user.avatarUrl ? { uri: item.user.avatarUrl } : avatarDefault
@@ -118,11 +125,13 @@ const ChildCommentItem = ({
         <Text style={styles.authorName}>{item.user.displayName}</Text>
         <Text style={styles.commentText}>{item.content}</Text>
         {item.imageUrl && (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.childCommentImage}
-            resizeMode="contain"
-          />
+          <TouchableOpacity onPress={handleImagePress}>
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.childCommentImage}
+              resizeMode="contain"
+            />
+        </TouchableOpacity>
         )}
         <TouchableOpacity
           style={styles.actionButton}
@@ -146,6 +155,12 @@ const ChildCommentItem = ({
         </TouchableOpacity>
       )}
 
+      <ModalSingleImageComponent
+            imageUri={item.imageUrl}
+            isVisible={isModalImageVisible}
+            onClose={() => setIsModalImageVisible(false)}
+          />
+
       <MenuClick
         titleUpdate={"Chỉnh sửa bình luận"}
         titleDelete={"Xóa bình luận"}
@@ -168,7 +183,6 @@ const ChildCommentItem = ({
 const styles = StyleSheet.create({
   childCommentItem: {
     flexDirection: "row",
-    minWidth: "83%",
   },
   childAvatar: {
     width: 30,
@@ -176,7 +190,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginRight: 10,
   },
-  childCommentContent: {},
+  childCommentContent: {
+    flex: 1
+  },
   authorName: {
     fontWeight: "bold",
     marginBottom: 5,
@@ -187,9 +203,8 @@ const styles = StyleSheet.create({
   },
   childCommentImage: {
     width: "100%",
-    height: 150,
-    borderRadius: 8,
-    marginTop: 5,
+    height: 200,
+    alignSelf: "flex-start",
   },
   actionButton: {
     flexDirection: "row",

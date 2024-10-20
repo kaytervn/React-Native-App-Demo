@@ -16,7 +16,11 @@ import { CommentModel } from "@/src/models/comment/CommentModel";
 import Toast, { ErrorToast } from "react-native-toast-message";
 import HeaderLayout from "@/src/components/header/Header";
 import { LoadingDialog } from "@/src/components/Dialog";
-
+import { LogBox } from 'react-native';
+import { errorToast } from "@/src/types/toast";
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+]);
 const CommentUpdate = ({ navigation, route }: any) => {
   const { post, put } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
@@ -38,25 +42,31 @@ const CommentUpdate = ({ navigation, route }: any) => {
 
   const handleUpdate = async () => {
     setLoadingDialog(true);
-    if (!content) {
-      Toast.show(ErrorToast({ text1: "Error", text2: "Nội dung không được bỏ trống" }));
+    try {
+      if (!content) {
+        Toast.show(errorToast("Nội dung không được để trống"));
+        setLoadingDialog(false);
+        return;
+      } else {
+        item.content = content;
+      }
+      if (updateImage && updateImage !== item.imageUrl) {
+        item.imageUrl = await uploadImage(updateImage, post);
+      }
+      const params = {
+        id : item._id,
+        content: content,
+        imageUrl: updateImage,
+      };
+      await put(`/v1/comment/update/`, params);
       setLoadingDialog(false);
-      return;
-    } else {
-      item.content = content;
+      onItemUpdate(item)
+      navigation.goBack();
+    } catch {
+      setLoadingDialog(false);
+      Toast.show(errorToast("Lỗi cập nhật bình luận"));
     }
-    if (updateImage && updateImage !== item.imageUrl) {
-      item.imageUrl = await uploadImage(updateImage, post);
-    }
-    const params = {
-      id : item._id,
-      content: content,
-      imageUrl: updateImage,
-    };
-    await put(`/v1/comment/update/`, params);
-    onItemUpdate(item)
-    setLoadingDialog(false);
-    navigation.goBack();
+    
   };
 
   const handleGoBack = () => {
@@ -140,6 +150,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginTop: 10,
+    resizeMode: "contain"
   },
   actionContainer: {
     flexDirection: "row",

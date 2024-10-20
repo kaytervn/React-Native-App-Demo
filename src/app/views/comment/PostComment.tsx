@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -40,6 +40,7 @@ const PostComment = ({
   postItem,
   onItemAdded,
   onItemDeleted,
+  onItemReply,
   userAvatar,
 }: any) => {
   const { get, post, del, loading } = useFetch();
@@ -56,7 +57,8 @@ const PostComment = ({
     [key: string]: boolean;
   }>({});
   const [replyingTo, setReplyingTo] = useState<CommentModel | null>(null);
-  const [modalSingleImageVisible, setModalSingleImageVisible] = useState(false)
+  const inputRef = useRef<TextInput>(null);
+  
   const commentSize = 10;
 
   const fetchComments = useCallback(
@@ -151,8 +153,14 @@ const PostComment = ({
       }
       await post(`/v1/comment/create`, params);
       if (replyingTo) {
-        // Refresh child comments if replying
-        await fetchChildComments(replyingTo._id);
+        setComments((prevComments) => 
+          prevComments.map((comment) => 
+            comment._id === replyingTo._id
+              ? { ...comment, totalChildren: (comment.totalChildren || 0) + 1 }
+              : comment
+          )
+        );
+        setLoadingDialog(false);
       } else {
         // Refresh top-level comments if not replying
         fetchComments(0);
@@ -166,6 +174,10 @@ const PostComment = ({
       console.error("Error posting comment:", error);
     } 
   };
+
+  useEffect(() => {
+    console.log("Comments state updated:", comments);
+  }, [comments]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -214,6 +226,9 @@ const PostComment = ({
   // Reply to comment
   const handleReply = (comment: CommentModel) => {
     setReplyingTo(comment);
+    toggleChildComments(comment._id);
+    inputRef.current?.focus();
+    onItemReply()
   };
 
   const cancelReply = () => {
@@ -273,6 +288,7 @@ const PostComment = ({
           style={styles.avatar}
         />
         <TextInput
+          ref={inputRef}
           style={styles.input}
           value={newComment}
           onChangeText={setNewComment}
@@ -352,6 +368,7 @@ const styles = StyleSheet.create({
     height: 100,
     marginVertical: 10,
     alignSelf: "center",
+    resizeMode: "contain"
   },
   commentList: {
     flexGrow: 1,
