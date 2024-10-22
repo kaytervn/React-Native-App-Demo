@@ -1,26 +1,25 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
-  Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Keyboard,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
 import SearchBar from "@/src/components/search/SearchBar";
 import EmptyComponent from "@/src/components/empty/EmptyComponent";
-import defaultUserImg from "../../../assets/user_icon.png";
 import { FriendModel } from "@/src/models/friend/FriendModel";
-
 import FriendItem from "../friend/FriendItem";
-import AddFriendModal from "../friend/FriendAdd";
-import FriendAdd from "../friend/FriendAdd";
+import HeaderLayout from "@/src/components/header/Header";
+import SearchBarWhite from "@/src/components/search/SearchBarWhite";
+import FriendSendRequestItem from "./FriendSendRequestItem";
+import Toast from "react-native-toast-message";
+import { successToast } from "@/src/types/toast";
 
-const Friends = ({ navigation }: any) => {
+
+const FriendSendRequest = ({ navigation }: any) => {
   const { get, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,9 +53,10 @@ const Friends = ({ navigation }: any) => {
       const res = await get(`/v1/friendship/list`, {
         page: pageNumber,
         size,
-        displayName: displayName
+        displayName: displayName,
+        getListKind: 2 // For FriendSendRequest
       });
-      const newFriends = res.data.content
+      const newFriends = res.data.content;
       if (pageNumber === 0) {
         setFriends(newFriends);
       } else {
@@ -65,7 +65,7 @@ const Friends = ({ navigation }: any) => {
       setHasMore(newFriends.length === size);
       setPage(pageNumber);
     } catch (error) {
-      console.error("Error fetching friends:", error);
+      console.error("Error fetching sent friend requests:", error);
     } finally {
       setLoadingDialog(false);
     }
@@ -91,46 +91,35 @@ const Friends = ({ navigation }: any) => {
       fetchData(page + 1);
     }
   };
-  
+  const handleItemRemove = (id: string) => {
+    Toast.show(successToast("Đã xóa yêu cầu kết bạn!"));
+    setFriends((prevFriends) => prevFriends.filter((item) => item._id !== id));
+  }
 
   const renderFriendItem = ({ item }: { item: FriendModel }) => (
-    <FriendItem 
+    <FriendSendRequestItem 
       item={item}
-      navigation = {navigation}
+      navigation={navigation}
+      onItemDelete={handleItemRemove}
     />
-  );
-
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <TouchableOpacity 
-        style={styles.headerButton} 
-        onPress={() => navigation.navigate("FriendRequest")}
-      >
-        <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-        <Text style={styles.headerButtonText}>Lời mời kết bạn</Text>
-      </TouchableOpacity>
-      <TouchableOpacity 
-        style={styles.headerButton} 
-        onPress={() => navigation.navigate("FriendSendRequest")}
-      >
-        <Ionicons name="people-outline" size={24} color="#0084ff" />
-        <Text style={styles.headerButtonText}>Yêu cầu kết bạn</Text>
-      </TouchableOpacity>
-    </View>
   );
 
   return (
     <View style={styles.container}>
+      
+      <HeaderLayout
+        title="Yêu cầu kết bạn đã gửi"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
 
-      <SearchBar
+      <SearchBarWhite
         value={searchQuery}
         onChangeText={setSearchQuery}
         onSubmitEditing={handleSearch}
         onSearch={handleSearch}
-        placeholder="Tìm kiếm bạn bè..."
-        additionalIcon="add"
-        onAdditionalIconPress={() => navigation.navigate("FriendAdd")}
+        placeholder="Tìm kiếm..."
         handleClear={clearSearch}
       />
 
@@ -142,14 +131,14 @@ const Friends = ({ navigation }: any) => {
         onRefresh={handleRefresh}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={<EmptyComponent message="Không tìm thấy bạn bè" />}
+        ListEmptyComponent={<EmptyComponent message="Không có yêu cầu kết bạn đã gửi" />}
         ListFooterComponent={() =>
           loading && hasMore ? (
             <ActivityIndicator size="large" color="#007AFF" />
           ) : null
         }
       />
+      <Toast/>
     </View>
   );
 };
@@ -159,52 +148,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  friendName: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  friendLastLogin: {
-    fontSize: 12,
-    color: "#666",
-  },
-  headerContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-  },
-  headerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f3f2",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  headerButtonText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#1c1e21",
-  },
-
-
 });
 
-export default Friends;
+export default FriendSendRequest;

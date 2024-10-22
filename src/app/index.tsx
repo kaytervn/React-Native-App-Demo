@@ -19,6 +19,9 @@ import ChatDetail from "./views/chat/ChatDetail";
 import RequestKeyChange from "./views/home/RequestKeyChange";
 import VerifyKeyChange from "./views/home/VerifyKeyChange";
 import CommentUpdate from "./views/comment/CommentUpdate";
+import FriendRequest from "./views/friend/FriendRequest";
+import FriendSendRequest from "./views/friend/FriendSendRequest";
+import FriendAdd from "./views/friend/FriendAdd";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
   <Stack.Navigator
@@ -42,6 +45,9 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="RequestKeyChange" component={RequestKeyChange} />
     <Stack.Screen name="VerifyKeyChange" component={VerifyKeyChange} />
     <Stack.Screen name="CommentUpdate" component={CommentUpdate} />
+    <Stack.Screen name="FriendRequest" component={FriendRequest} />
+    <Stack.Screen name="FriendSendRequest" component={FriendSendRequest} />
+    <Stack.Screen name="FriendAdd" component={FriendAdd} />
   </Stack.Navigator>
 );
 

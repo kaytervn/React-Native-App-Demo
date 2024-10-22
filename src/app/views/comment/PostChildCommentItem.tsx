@@ -13,10 +13,10 @@ import useFetch from "../../hooks/useFetch";
 import MenuClick from "@/src/components/post/MenuClick";
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
-import ModalDelete from "@/src/components/post/ModalDelete";
 import { avatarDefault } from "@/src/types/constant";
 import { LoadingDialog } from "@/src/components/Dialog";
 import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
+import ModalConfirm from "@/src/components/post/ModalConfirm";
 
 const ChildCommentItem = ({
   item,
@@ -170,7 +170,7 @@ const ChildCommentItem = ({
         onDelete={handleDeletePress}
       />
 
-      <ModalDelete
+      <ModalConfirm
         isVisible={showDeleteModal}
         title="Bạn sẽ xóa bình luận này chứ?"
         onClose={handleDeleteCancel}

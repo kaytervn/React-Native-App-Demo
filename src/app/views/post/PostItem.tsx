@@ -15,11 +15,11 @@ import { Ionicons } from "@expo/vector-icons";
 import useFetch from "@/src/app/hooks/useFetch";
 import ModalListImageComponent from "../../../components/post/ModalListImageComponent";
 import MenuClick from "../../../components/post/MenuClick";
-import ModalDelete from "../../../components/post/ModalDelete";
 import { LoadingDialog } from "../../../components/Dialog";
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
 import BottomSheet from "@gorhom/bottom-sheet";
+import ModalConfirm from "@/src/components/post/ModalConfirm";
 const { width, height } = Dimensions.get("window");
 const imageWidth = width - 20;
 
@@ -243,7 +243,7 @@ const PostItem = ({
         onUpdate={handleUpdate}
         onDelete={handleDeletePress}      />
       
-      <ModalDelete
+      <ModalConfirm
         isVisible={showDeleteModal}
         title="Bạn sẽ xóa bài viết này chứ?"
         onClose={handleDeleteCancel}

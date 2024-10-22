@@ -18,9 +18,10 @@ import useFetch from "../../hooks/useFetch";
 import { successToast } from "@/src/types/toast";
 import Toast from "react-native-toast-message";
 import { avatarDefault } from "@/src/types/constant";
-import ModalDelete from "@/src/components/post/ModalDelete";
+
 import ModalSingleImageComponent from "@/src/components/post/ModalSingleImageComponent";
 import { LoadingDialog } from "@/src/components/Dialog";
+import ModalConfirm from "@/src/components/post/ModalConfirm";
 
 
 
@@ -253,7 +254,7 @@ const PostCommentItem = ({
         onDelete={handleDeletePress}
       />
 
-      <ModalDelete
+      <ModalConfirm
         isVisible={showDeleteModal}
         title="Bạn sẽ xóa bình luận này chứ?"
         onClose={handleDeleteCancel}

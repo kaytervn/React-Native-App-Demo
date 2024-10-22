@@ -5,6 +5,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import useFetch from "../../hooks/useFetch";
 import { LoadingDialog } from "@/src/components/Dialog";
@@ -12,13 +13,19 @@ import { NotificationModel } from "@/src/models/notification/NotificationModel";
 import NotificationItem from "@/src/components/notification/NotificationItem";
 import HeaderLayout from "@/src/components/header/Header";
 import { Bell, Menu } from "lucide-react-native";
+import MenuClick from "@/src/components/post/MenuClick";
+import ModalConfirm from "@/src/components/post/ModalConfirm";
+import Toast from "react-native-toast-message";
+import { successToast } from "@/src/types/toast";
 
 const Notification = ({ navigation }: any) => {
-  const { get, loading } = useFetch();
+  const { get, del, put, loading } = useFetch();
   const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<NotificationModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [page, setPage] = useState(0);
 
   const size = 10;
@@ -32,7 +39,6 @@ const Notification = ({ navigation }: any) => {
           size,
         };
        
-    
         const res = await get(`/v1/notification/list`, params);
         console.log("Notification response:", res.data.content);
         
@@ -56,7 +62,7 @@ const Notification = ({ navigation }: any) => {
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(0);
-    fetchNotifications(page).then(() => setRefreshing(false));
+    fetchNotifications(0).then(() => setRefreshing(false));
   }, [fetchNotifications]);
 
   const handleLoadMore = () => {
@@ -76,9 +82,58 @@ const Notification = ({ navigation }: any) => {
     </View>
   );
 
+  const handleItemClick = (itemId: string) => (
+    {}
+  )
+
+  const handleReadAll = async () => {
+    setLoadingDialog(true)
+    try {
+      const response = await put(`/v1/notification/read-all`);
+      if (response.result) {
+        Toast.show(successToast("Toàn bộ thông báo đánh dấu đã đọc!"))
+        
+      } else {
+        throw new Error("Failed to read all notification");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      Alert.alert("Error", "Lỗi đọc toàn bộ thông báo!.");
+    } finally {
+      setLoadingDialog(false)
+    }
+  };
+
+  const handleDeletePress = () => {
+    setShowMenu(false);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setShowDeleteModal(false);
+    setLoadingDialog(true)
+    try {
+      const response = await del(`/v1/notification/delete-all`);
+      if (response.result) {
+        Toast.show(successToast("Xóa toàn bộ thông báo thành công!"))
+      } else {
+        throw new Error("Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      Alert.alert("Error", "Lỗi xóa toàn bộ thông báo!.");
+    } finally {
+      setLoadingDialog(false)
+    }
+  };
+
   const renderItem = ({ item }: { item: NotificationModel }) => (
     <View style={{marginVertical: 0}}>
-      <NotificationItem item={item} />
+      <NotificationItem item={item} onItemClick={handleItemClick} />
     </View>
   );
 
@@ -89,7 +144,7 @@ const Notification = ({ navigation }: any) => {
         showBackButton={false}
         onBackPress={()=>{}}
         RightIcon={Menu}
-        onRightIconPress={()=>{}}
+        onRightIconPress={()=>setShowMenu(true)}
       />
     {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
     <FlatList
@@ -106,7 +161,23 @@ const Notification = ({ navigation }: any) => {
         loading && hasMore ? <ActivityIndicator size="large" color="#007AFF" /> : null
       }
       />
+      <MenuClick 
+        titleUpdate={"Đánh dấu tất cả đã đọc"}
+        titleDelete={"Xóa toàn bộ thông báo"}
+        isVisible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onUpdate={handleReadAll}
+        onDelete={handleDeletePress}  
+        />
+
+      <ModalConfirm
+        isVisible={showDeleteModal}
+        title="Bạn sẽ xóa toàn bộ thông báo?"
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
     </View>
+    
     
   );
 };
