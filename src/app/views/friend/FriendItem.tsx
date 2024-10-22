@@ -75,8 +75,14 @@ import ModalConfirm from '@/src/components/post/ModalConfirm';
           titleDelete={"Xóa bạn"}
           isVisible={showMenu}
           onClose={() => setShowMenu(false)}
-          onUpdate={() => setShowMenuDetail(true)}
-          onDelete={handleDeletePress}
+          onUpdate={() => {
+              setShowMenuDetail(true)
+              setShowMenu(false)
+          }}
+          onDelete={()=> {
+            handleDeletePress()
+            setShowMenu(false)
+          }}
         />
 
         <ModalConfirm

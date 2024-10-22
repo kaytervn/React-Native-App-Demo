@@ -17,6 +17,7 @@ import MenuClick from "@/src/components/post/MenuClick";
 import ModalConfirm from "@/src/components/post/ModalConfirm";
 import Toast from "react-native-toast-message";
 import { successToast } from "@/src/types/toast";
+import EmptyComponent from "@/src/components/empty/EmptyComponent";
 
 const Notification = ({ navigation }: any) => {
   const { get, del, put, loading } = useFetch();
@@ -77,9 +78,7 @@ const Notification = ({ navigation }: any) => {
   }, []);
 
   const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No notifications</Text>
-    </View>
+    <EmptyComponent message="Không có thông báo nào" />
   );
 
   const handleItemClick = (itemId: string) => (
@@ -87,12 +86,14 @@ const Notification = ({ navigation }: any) => {
   )
 
   const handleReadAll = async () => {
+    setShowMenu(false);
     setLoadingDialog(true)
     try {
       const response = await put(`/v1/notification/read-all`);
       if (response.result) {
         Toast.show(successToast("Toàn bộ thông báo đánh dấu đã đọc!"))
-        
+        setNotifications([])
+        fetchNotifications(0)
       } else {
         throw new Error("Failed to read all notification");
       }
@@ -120,6 +121,7 @@ const Notification = ({ navigation }: any) => {
       const response = await del(`/v1/notification/delete-all`);
       if (response.result) {
         Toast.show(successToast("Xóa toàn bộ thông báo thành công!"))
+        fetchNotifications(0);
       } else {
         throw new Error("Failed to delete post");
       }
