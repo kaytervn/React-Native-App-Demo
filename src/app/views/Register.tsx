@@ -5,9 +5,15 @@ import {
   ShieldCheckIcon,
   CircleUserRoundIcon,
   PhoneIcon,
+  IdCardIcon,
 } from "lucide-react-native";
 import Button from "@/src/components/Button";
-import { EmailPattern, PhonePattern, remoteUrl } from "@/src/types/constant";
+import {
+  EmailPattern,
+  PhonePattern,
+  remoteUrl,
+  StudentIdPattern,
+} from "@/src/types/constant";
 import Intro from "@/src/components/Intro";
 import useForm from "../hooks/useForm";
 import Toast from "react-native-toast-message";
@@ -32,6 +38,11 @@ const Register = ({ navigation }: any) => {
     } else if (!PhonePattern.test(form.phone)) {
       newErrors.phone = "Số điện thoại không hợp lệ";
     }
+    if (!form.studentId.trim()) {
+      newErrors.studentId = "Mã sinh viên không được bỏ trống";
+    } else if (!StudentIdPattern.test(form.studentId)) {
+      newErrors.studentId = "Mã sinh viên không hợp lệ";
+    }
     if (!form.password) {
       newErrors.password = "Mật khẩu không được bỏ trống";
     } else if (form.password.length < 6) {
@@ -50,16 +61,11 @@ const Register = ({ navigation }: any) => {
       displayName: "",
       email: "",
       phone: "",
+      studentId: "",
       password: "",
       confirmPassword: "",
     },
-    {
-      displayName: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
-    },
+    {},
     validate
   );
 
@@ -75,6 +81,7 @@ const Register = ({ navigation }: any) => {
           body: JSON.stringify({
             displayName: form.displayName,
             email: form.email,
+            studentId: form.studentId,
             password: form.password,
             phone: form.phone,
           }),
@@ -97,6 +104,8 @@ const Register = ({ navigation }: any) => {
     <Intro
       loading={<LoadingDialog isVisible={isLoading} />}
       color="royalblue"
+      onBack={() => navigation.goBack()}
+      title="QUAY LẠI ĐĂNG NHẬP"
       header="Tạo tài khoản"
       subHeader="Mừng thành viên mới!"
     >
@@ -128,6 +137,16 @@ const Register = ({ navigation }: any) => {
         value={form.phone}
         icon={PhoneIcon}
         error={errors.phone}
+      />
+      <InputField
+        title="Mã sinh viên"
+        isRequire={true}
+        placeholder="Nhập mã sinh viên"
+        onChangeText={(value: any) => handleChange("studentId", value)}
+        keyboardType="numeric"
+        value={form.studentId}
+        icon={IdCardIcon}
+        error={errors.studentId}
       />
       <InputField
         title="Mật khẩu"

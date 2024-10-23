@@ -39,10 +39,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     justifyContent: "space-between",
-    height: 56,
+    height: 60,
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 10,
     backgroundColor: "#059BF0",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
@@ -58,9 +57,10 @@ const styles = StyleSheet.create({
   rightContainer: {
     flex: 1,
     alignItems: "flex-end",
+    
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
   },
@@ -68,7 +68,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   iconButton: {
-    padding: 8,
+    paddingVertical: 10,
+    paddingStart: 15,
   },
 });
 

@@ -1,177 +1,271 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import useFetch from '../../hooks/useFetch';
-import userIcon from '../../../assets/user_icon.png';
-import AddFriend from '../friend/AddFriend'; 
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Keyboard,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import useFetch from "../../hooks/useFetch";
+import { LoadingDialog } from "@/src/components/Dialog";
+import SearchBar from "@/src/components/search/SearchBar";
+import EmptyComponent from "@/src/components/empty/EmptyComponent";
+import defaultUserImg from "../../../assets/user_icon.png";
+import { FriendModel } from "@/src/models/friend/FriendModel";
 
-interface Friend {
-  _id: string;
-  displayName: string;
-  email: string;
-  avatarUrl?: string;
-}
+import FriendItem from "../friend/FriendItem";
+import AddFriendModal from "../friend/FriendAdd";
+import FriendAdd from "../friend/FriendAdd";
+import { UserModel } from "@/src/models/user/UserModel";
 
-const FriendsList = () => {
+const Friends = ({ navigation }: any) => {
   const { get, loading } = useFetch();
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('friends');
+  const [loadingDialog, setLoadingDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [friends, setFriends] = useState<FriendModel[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState(0);
-  const [isAddFriendVisible, setIsAddFriendVisible] = useState(false); 
-  const size = 10; 
+  const [user, setUser] = useState<UserModel>();
+  const size = 10;
 
-  const fetchFriends = useCallback(async (pageNumber: number, shouldRefresh: boolean = false) => {
-    if (!hasMore && !shouldRefresh) return;
+  useEffect(() => {
+    fetchUserData();
+    fetchData(0);
+  }, []);
 
+  const fetchUserData = async () => {
     try {
-      const res = await get(`/v1/friendship/list?page=${pageNumber}&size=${size}`);
-      const newFriends = res.data.content.map((friendship: any) => ({
-        _id: friendship.receiver._id,
-        displayName: friendship.receiver.displayName,
-        email: friendship.receiver.email,
-        avatarUrl: friendship.receiver.avatarUrl,
-      }));
+      const res = await get("/v1/user/profile");
+      setUser(res.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
-      if (shouldRefresh) {
+  const handleSearch = async () => {
+    setLoadingDialog(true);
+    Keyboard.dismiss();
+    await getFriends(0, searchQuery);
+    setLoadingDialog(false);
+  };
+
+  const clearSearch = async () => {
+    setLoadingDialog(true);
+    Keyboard.dismiss();
+    setSearchQuery("");
+    await getFriends(0, "");
+  };
+
+  async function getFriends(pageNumber: number, displayName: string) {
+    try {
+      const res = await get(`/v1/friendship/list`, {
+        page: pageNumber,
+        size,
+        displayName: displayName
+      });
+      const newFriends = res.data.content
+      if (pageNumber === 0) {
         setFriends(newFriends);
       } else {
         setFriends((prevFriends) => [...prevFriends, ...newFriends]);
       }
-
       setHasMore(newFriends.length === size);
       setPage(pageNumber);
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error("Error fetching friends:", error);
+    } finally {
+      setLoadingDialog(false);
     }
-  }, [get, hasMore, size]);
+  }
 
-  useEffect(() => {
-    fetchFriends(0, true);
-  }, [fetchFriends]);
+  const fetchData = useCallback(
+    async (pageNumber: number) => {
+      if (!hasMore && pageNumber !== 0) return;
+      getFriends(pageNumber, searchQuery);
+    },
+    [get, size]
+  );
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     setRefreshing(true);
-    fetchFriends(0, true).then(() => setRefreshing(false));
-  }, [fetchFriends]);
+    setSearchQuery("");
+    setPage(0);
+    fetchUserData();
+    getFriends(0, "").then(() => setRefreshing(false));
+  };
 
   const handleLoadMore = () => {
     if (hasMore && !loading) {
-      fetchFriends(page + 1);
+      fetchData(page + 1);
     }
   };
+  
+  const renderFriendItem = ({ item }: { item: FriendModel }) => (
+    <FriendItem 
+      item={item}
+      navigation = {navigation}
+    />
+  );
 
-  const filteredFriends = useMemo(() => {
-    return friends.filter(friend =>
-      friend.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [friends, searchQuery]);
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <TouchableOpacity 
+        style={styles.headerButton} 
+        onPress={() => navigation.navigate("FriendRequest")}
+      >
+          <View style={styles.buttonContent}>
+            <Ionicons name="person-add-outline" size={24} color="#0084ff" />
+            <Text style={styles.headerButtonText}>Lời mời kết bạn</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{user?.totalFriendRequestsReceived}</Text>
+            </View>
+          </View>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.headerButton} 
+        onPress={() => navigation.navigate("FriendSendRequest")}
+      >
+         <View style={styles.buttonContent}>
+            <Ionicons name="people-outline" size={24} color="#0084ff" />
+            <Text style={styles.headerButtonText}>Yêu cầu kết bạn</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{user?.totalFriendRequestsSent}</Text>
+            </View>
+          </View>
+      </TouchableOpacity>
 
-  const renderFriendItem = ({ item }: { item: Friend }) => {
-    return (
-      <View className="flex-row items-center mb-4">
-        <Image
-          source={item.avatarUrl ? { uri: item.avatarUrl } : userIcon}
-          className="w-12 h-12 rounded-full mr-3"
-          defaultSource={userIcon}
-          onError={(e) => console.log('Error loading avatar:', e.nativeEvent.error)}
-        />
-        <View className="flex-1">
-          <Text className="text-base font-medium">{item.displayName}</Text>
-          <Text className="text-sm text-gray-500">{item.email}</Text>
-        </View>
+      <View style={styles.totalFriendsContainer}>
+        <Text style={styles.totalFriendsText}>
+          Bạn bè ({friends.length})
+        </Text>
       </View>
-    );
-  };
-
-  const groupedFriends = filteredFriends.reduce((acc, friend) => {
-    const firstLetter = friend.displayName[0].toUpperCase();
-    if (!acc[firstLetter]) {
-      acc[firstLetter] = [];
-    }
-    acc[firstLetter].push(friend);
-    return acc;
-  }, {} as Record<string, Friend[]>);
-
-  const sortedGroups = Object.entries(groupedFriends).sort(([a], [b]) => a.localeCompare(b));
+    </View>
+  );
 
   return (
-    <View className="flex-1 bg-white p-4">
-      <View className="flex-row items-center bg-gray-100 rounded-full px-3 mb-3">
-        <Ionicons name="search" size={20} color="#999" className="mr-2" />
-        <TextInput
-          className="flex-1 h-10 text-base"
-          placeholder="Tìm kiếm"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <TouchableOpacity className="p-2 ml-1" onPress={() => setIsAddFriendVisible(true)}>
-          <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-        </TouchableOpacity>
-        <TouchableOpacity className="p-2 ml-1" onPress={() => console.log('Scan QR')}>
-          <Ionicons name="qr-code-outline" size={24} color="#0084ff" />
-        </TouchableOpacity>
-      </View>
-      <View className="flex-row mb-4 border-b border-gray-200">
-        <TouchableOpacity
-          className={`flex-1 py-3 items-center ${activeTab === 'friends' ? 'border-b-2 border-blue-500' : ''}`}
-          onPress={() => setActiveTab('friends')}
-        >
-          <Text className={`text-base ${activeTab === 'friends' ? 'text-blue-500 font-bold' : 'text-gray-500'}`}>Bạn bè</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 py-3 items-center ${activeTab === 'groups' ? 'border-b-2 border-blue-500' : ''}`}
-          onPress={() => setActiveTab('groups')}
-        >
-          <Text className={`text-base ${activeTab === 'groups' ? 'text-blue-500 font-bold' : 'text-gray-500'}`}>Nhóm</Text>
-        </TouchableOpacity>
-      </View>
-      <View className="mb-4">
-              <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
-                <Ionicons name="people-outline" size={24} color="#0084ff" />
-                <Text className="ml-3 text-base text-gray-900">Danh sách chặn</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="flex-row items-center mb-3 bg-gray-100 p-3 rounded-lg">
-                <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-                <Text className="ml-3 text-base text-gray-900">Lời mời kết bạn (20)</Text>
-              </TouchableOpacity>
-            </View>
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold">Yêu thích</Text>
-              <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-full">
-                <Text className="text-blue-500">+ Thêm</Text>
-              </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
+
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onSubmitEditing={handleSearch}
+        onSearch={handleSearch}
+        placeholder="Tìm kiếm bạn bè..."
+        handleClear={clearSearch}
+        additionalIcon="add"
+        onAdditionalIconPress={() => navigation.navigate("FriendAdd")}
+      />
+
       <FlatList
-        data={sortedGroups}
-        keyExtractor={(item) => item[0]}
-        renderItem={({ item: [letter, groupFriends] }) => (
-          <View>
-            <Text className="text-lg font-bold mt-4 mb-2">{letter}</Text>
-            {groupFriends.map((friend) => (
-              <React.Fragment key={friend._id}>
-                {renderFriendItem({ item: friend })}
-              </React.Fragment>
-            ))}
-          </View>
-        )}
+        data={friends}
+        keyExtractor={(item) => item._id}
+        renderItem={renderFriendItem}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={<EmptyComponent message="Không tìm thấy bạn bè" />}
         ListFooterComponent={() =>
-          loading && hasMore ? <ActivityIndicator size="large" color="#0084ff" /> : null
+          loading && hasMore ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : null
         }
-      />
-
-      <AddFriend
-        visible={isAddFriendVisible}
-        onClose={() => setIsAddFriendVisible(false)}
       />
     </View>
   );
 };
 
-export default FriendsList;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  friendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  friendInfo: {
+    flex: 1,
+  },
+  friendName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  friendLastLogin: {
+    fontSize: 12,
+    color: "#666",
+  },
+  headerContainer: {
+    backgroundColor: "#fff",
+    paddingTop: 5,
+    paddingHorizontal: 15,
+    marginBottom: 5,
+  },
+  headerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f3f2",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  headerButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#1c1e21",
+    flex: 1
+  },
+
+  //Badges
+  totalFriendsContainer: {
+    backgroundColor: "#fff",
+    paddingStart: 0,
+    paddingVertical: 10
+  },
+  totalFriendsText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1c1e21",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Add this
+    width: "100%",
+  },
+  
+  badge: {
+    backgroundColor: "#f56e58",
+    borderRadius: 12.5,
+    minWidth: 25,
+    height: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    marginLeft: 10,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+
+});
+
+export default Friends;

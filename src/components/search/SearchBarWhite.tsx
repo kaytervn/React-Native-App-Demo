@@ -2,42 +2,28 @@ import React from "react";
 import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const SearchBar = ({ 
-  value, 
-  onChangeText, 
-  onSubmitEditing, 
-  onSearch, 
-  placeholder, 
-  handleClear,
-  additionalIcon,
-  onAdditionalIconPress
-}: any) => {
+const SearchBarWhite = ({ value, onChangeText, onSubmitEditing, onSearch, placeholder, handleClear }: any) => {
   return (
     <View style={styles.searchContainer}>
       <View style={styles.searchInputContainer}>
+        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#FFFFFF"
+          placeholderTextColor="#999"
           style={styles.searchInput}
           onSubmitEditing={onSubmitEditing}
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+            <Ionicons name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
         )}
       </View>
       <TouchableOpacity onPress={onSearch} style={styles.searchButton}>
-        <Ionicons name="search" size={24} color="#FFFFFF" />
+        <Ionicons name="search" size={24} color="#007AFF" />
       </TouchableOpacity>
-      {additionalIcon && (
-        <TouchableOpacity onPress={onAdditionalIconPress} style={styles.additionalButton}>
-          <Ionicons name={additionalIcon} size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
-      
     </View>
   );
 };
@@ -48,38 +34,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#00A3FF",
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "#F0F0F0",
     borderRadius: 25,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+  },
+  searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
     height: 40,
-    fontSize: 14,
-    color: "#FFFFFF",
-    fontWeight: "500",
+    fontSize: 16,
+    color: "#333",
+  },
+  clearButton: {
+    padding: 5,
   },
   searchButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#E8E8E8",
     borderRadius: 25,
     paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginRight: 5,
-  },
-  additionalButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 25,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginStart: 5
+    paddingHorizontal: 15,
   },
 });
 
-export default SearchBar;
+export default SearchBarWhite;

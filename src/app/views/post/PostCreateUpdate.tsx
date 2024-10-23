@@ -21,11 +21,17 @@ import { errorToast, successToast } from "@/src/types/toast";
 import ModalStatus from "@/src/components/post/ModalStatus";
 import PostItem from "@/src/app/views/post/PostItem";
 import { PostModel } from "@/src/models/post/PostModel";
+import { avatarDefault } from "@/src/types/constant";
+import { LogBox } from 'react-native';
+import HeaderLayout from "@/src/components/header/Header";
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+]);
 
 const { height } = Dimensions.get("window");
 
 const PostCreateUpdate = ({
-  navigation,
+  navigation, 
   route,
 }: {
   navigation: any;
@@ -142,9 +148,7 @@ const PostCreateUpdate = ({
         res = await post("/v1/post/create", postBody);
       }
 
-     
-    
-    
+
       if (res.result) {
         if (postItem && isUpdating) {
           // Chỉ cập nhật postItem nếu nó tồn tại (trong trường hợp cập nhật)
@@ -153,8 +157,10 @@ const PostCreateUpdate = ({
             postItem.imageUrls = postBody.imageUrls;
           }
           postItem.kind = postBody.kind;
+          setLoadingDialog(false)
           route.params?.onPostUpdate(postItem);
           Toast.show(successToast("Cập nhật bài đăng thành công!"))
+          
         } else {
           setLoadingDialog(true)
           route.params?.onRefresh();
@@ -198,27 +204,26 @@ const PostCreateUpdate = ({
         return "Chọn trạng thái";
     }
   };
-
+  const RightButton = () => (
+    <TouchableOpacity onPress={handleSubmit}>
+      <Text style={styles.postButtonText}>
+        {isUpdating ? "Cập nhật" : "Đăng"}
+      </Text>
+    </TouchableOpacity> 
+  );
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}
-        </Text>
-        <TouchableOpacity style={styles.postButton} onPress={handleSubmit}>
-          <Text style={styles.postButtonText}>
-            {isUpdating ? "Cập nhật" : "Đăng"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <HeaderLayout
+        title={isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+        RightIcon={RightButton}
+      />
 
       <View style={styles.userContainer}>
         <Image
-          source={{ uri: userAvatar || "https://via.placeholder.com/100" }}
+          source={userAvatar ? { uri: userAvatar } : avatarDefault}
           style={styles.avatar}
         />
         <View>
@@ -319,6 +324,8 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 15,
+    borderColor: "#ffffff",
   },
   input: {
     paddingHorizontal: 15,

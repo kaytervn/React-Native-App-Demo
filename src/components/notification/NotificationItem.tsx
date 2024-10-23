@@ -1,23 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NotificationModel } from '@/src/models/notification/NotificationModel';
+import useFetch from '@/src/app/hooks/useFetch';
+import { avatarDefault } from '@/src/types/constant';
 
-const NotificationItem = ({ item }: { item: NotificationModel }) => {
+
+
+const NotificationItem = ({ item, onItemClick }: any) => {
+  const {put, loading} = useFetch()
+  const [status, setStatus] = useState(item.status)
+  const handlePress = async () => {
+    console.log('touchable pressed')
+    try {
+      if (item.status !== 2) { // If notification is unread
+        setStatus(2)
+        onItemClick?.(item._id);
+        const response = await put(`/v1/notification/read/${item._id}`)
+        
+        if (!response.result) {
+          throw new Error('Failed to mark notification as read');
+        }
+        // Call the callback to update the parent state
+       
+      }
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to mark notification as read. Please try again.',
+        [{ text: 'OK' }]
+      );
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
   return (
-    <TouchableOpacity style={[styles.container, item.status == 2 ? null : styles.unreadItem]}>
+    <TouchableOpacity 
+      style={[styles.container, status !== 2 ? styles.unreadItem : null]}
+      onPress={handlePress}
+    >
       <View style={styles.iconContainer}>
-        <Ionicons name="notifications-outline" size={24} color="#007AFF" />
+         <Image 
+          source= {item.data.user.avatarUrl ? {uri: item.data.user.avatarUrl} : avatarDefault}
+          style={styles.avatar}
+        />
       </View>
       <View style={styles.contentContainer}>
         <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
         <Text style={styles.time}>{item.createdAt}</Text>
       </View>
-      {!(item.status == 2) && <View style={styles.unreadIndicator} />}
+      {status !== 2 && <View style={styles.unreadIndicator} />}
     </TouchableOpacity>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -50,6 +85,11 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: '#999',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   unreadIndicator: {
     width: 10,

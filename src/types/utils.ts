@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import * as CryptoJS from "crypto-js";
 dayjs.extend(customParseFormat);
 
 const dateToString = (val: any) => {
@@ -42,4 +43,13 @@ const getStatusIcon = (value: number) => {
   }
 };
 
-export { dateToString, stringToDate, uploadImage, getDate, getStatusIcon };
+const encrypt = (value : any, secretKey : any) => {
+  return CryptoJS.AES.encrypt(value, secretKey).toString();
+};
+
+const decrypt = (encryptedValue : any, secretKey: any) => {
+  const decrypted = CryptoJS.AES.decrypt(encryptedValue, secretKey);
+  return decrypted.toString(CryptoJS.enc.Utf8);
+};
+
+export { dateToString, stringToDate, uploadImage, getDate, getStatusIcon, encrypt, decrypt };

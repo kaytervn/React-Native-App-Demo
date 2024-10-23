@@ -14,13 +14,15 @@ import ChangePassword from "./views/home/ChangePassword";
 import PostDetail from "./views/post/PostDetail";
 import Post from "./views/home/Post";
 import PostCreateUpdate from "./views/post/PostCreateUpdate";
-import ChatList from "./views/chat/ChatList";
+import RequestKeyChange from "./views/home/RequestKeyChange";
+import VerifyKeyChange from "./views/home/VerifyKeyChange";
+import CommentUpdate from "./views/comment/CommentUpdate";
+import FriendRequest from "./views/friend/FriendRequest";
+import FriendSendRequest from "./views/friend/FriendSendRequest";
+import FriendAdd from "./views/friend/FriendAdd";
 import ChatDetail from "./views/chat/ChatDetail";
-import PostComment from "./views/post/PostComment";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const AppNavigator = ({ isAuthenticated }: any) => (
-
   <Stack.Navigator
     initialRouteName={isAuthenticated ? "Home" : "Login"}
     screenOptions={{ headerShown: false }}
@@ -36,8 +38,13 @@ const AppNavigator = ({ isAuthenticated }: any) => (
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
     <Stack.Screen name="Post" component={Post} />
     <Stack.Screen name="PostDetail" component={PostDetail} />
-    <Stack.Screen name="PostCreateUpdate" component={PostCreateUpdate}/>
-    <Stack.Screen name="ChatList" component={ChatList} />
+    <Stack.Screen name="PostCreateUpdate" component={PostCreateUpdate} />
+    <Stack.Screen name="RequestKeyChange" component={RequestKeyChange} />
+    <Stack.Screen name="VerifyKeyChange" component={VerifyKeyChange} />
+    <Stack.Screen name="CommentUpdate" component={CommentUpdate} />
+    <Stack.Screen name="FriendRequest" component={FriendRequest} />
+    <Stack.Screen name="FriendSendRequest" component={FriendSendRequest} />
+    <Stack.Screen name="FriendAdd" component={FriendAdd} />
     <Stack.Screen name="ChatDetail" component={ChatDetail} />
   </Stack.Navigator>
 );

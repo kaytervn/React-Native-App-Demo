@@ -23,6 +23,7 @@
     "@react-navigation/native": "^6.0.2",
     "@react-navigation/native-stack": "^6.11.0",
     "chat-app": "file:",
+    "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
     "expo": "~51.0.37",
     "expo-blur": "~13.0.2",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@types/crypto-js": "^4.2.2",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.9",
     "@types/react": "~18.2.45",

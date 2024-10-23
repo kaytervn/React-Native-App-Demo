@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   MessageCircleMoreIcon,
   BookUserIcon,
@@ -18,11 +18,32 @@ import useBackHandler from "../../hooks/useBackHandler";
 import { ConfimationDialog } from "@/src/components/Dialog";
 import { BackHandler, View } from "react-native";
 import Toast from "react-native-toast-message";
+import useFetch from "../../hooks/useFetch";
+import { UserModel } from "@/src/models/user/UserModel";
+import Chat from "./Chat";
 
 const Home = () => {
+  const {get, loading} = useFetch();
   const { isDialogVisible, showDialog, hideDialog } = useDialog();
   const [isTabBarVisible, setIsTabBarVisible] = useState(true);
+  const [user, setUser] = useState<UserModel>();
   useBackHandler(showDialog);
+
+  const fetchUserData = async () => {
+    try {
+      const res = await get("/v1/user/profile");
+      console.log("User data:", res.data);
+      setUser(res.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+    
+  }, []);
+
   return (
     <>
      <Tab.Navigator
@@ -31,15 +52,17 @@ const Home = () => {
           tabBarStyle: isTabBarVisible ? {
             borderTopColor: "#ccc",
           } : { display: 'none' },
-          tabBarActiveTintColor: "royalblue",
-          tabBarInactiveTintColor: "#6c757d",
+          
+          tabBarActiveTintColor: "#059bf0",
           tabBarShowLabel: false,
         }}
       >
         <Tab.Screen
+
           name="Chat"
-          component={ChatList}
+          component={Chat}
           options={{
+          
             tabBarIcon: ({ color, size, focused }) => (
               <TabIcon
                 color={color}
@@ -47,6 +70,7 @@ const Home = () => {
                 focused={focused}
                 icon={MessageCircleMoreIcon}
                 label="Tin nhắn"
+                badge={user?.totalUnreadMessages}
               />
             ),
           }}
@@ -87,15 +111,19 @@ const Home = () => {
           name="Notification"
           component={Notification}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <TabIcon
-                color={color}
-                size={size}
-                focused={focused}
-                icon={BellIcon}
-                label="Thông báo"
-              />
-            ),
+           
+            tabBarIcon: ({ color, size, focused }) => {
+              return (
+                <TabIcon
+                  color={color}
+                  size={size}
+                  focused={focused}
+                  icon={BellIcon}
+                  label="Thông báo"
+                  badge={user?.totalUnreadNotifications}
+                />
+              );
+            }
           }}
         />
         <Tab.Screen
@@ -123,8 +151,8 @@ const Home = () => {
         confirmText="Thoát"
         color="red"
         message="Bạn có muốn thoát ứng dụng không?"
-        onConfirm={() => BackHandler.exitApp()}
-        onCancel={hideDialog}
+
+        onConfirm={() => BackHandler.exitApp()}        onCancel={hideDialog}
       />
     </>
   );

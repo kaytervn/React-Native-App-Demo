@@ -53,6 +53,8 @@ const ForgotPassword = ({ navigation }: any) => {
     <Intro
       loading={<LoadingDialog isVisible={isLoading} />}
       color="royalblue"
+      onBack={() => navigation.goBack()}
+      title="QUAY LẠI ĐĂNG NHẬP"
       header="Quên mật khẩu?"
       subHeader="Nhập địa chỉ email để lấy lại mật khẩu"
     >

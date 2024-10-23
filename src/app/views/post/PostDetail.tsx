@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import useFetch from '../../hooks/useFetch';
 import { PostModel } from '@/src/models/post/PostModel';
 import { Ionicons } from '@expo/vector-icons';
+import { avatarDefault } from '@/src/types/constant';
 
 
 const PostDetail = ({ navigation, route }: any) => {
@@ -56,7 +57,7 @@ const PostDetail = ({ navigation, route }: any) => {
       {/* User Info */}
       <View style={styles.userInfo}>
         <Image
-          source={{ uri: post.user.avatarUrl || 'https://via.placeholder.com/40' }}
+          source={post.user.avatarUrl ? { uri: post.user.avatarUrl } : avatarDefault}
           style={styles.avatar}
         />
         <View style={styles.nameTimeContainer}>
