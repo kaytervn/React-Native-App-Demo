@@ -29,14 +29,14 @@ const SearchBar = ({
           </TouchableOpacity>
         )}
       </View>
+      <TouchableOpacity onPress={onSearch} style={styles.searchButton}>
+        <Ionicons name="search" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
       {additionalIcon && (
         <TouchableOpacity onPress={onAdditionalIconPress} style={styles.additionalButton}>
           <Ionicons name={additionalIcon} size={24} color="#FFFFFF" />
         </TouchableOpacity>
       )}
-      <TouchableOpacity onPress={onSearch} style={styles.searchButton}>
-        <Ionicons name="search" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
       
     </View>
   );
@@ -71,14 +71,14 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingVertical: 10,
     paddingHorizontal: 10,
-    
+    marginRight: 5,
   },
   additionalButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 25,
     paddingVertical: 10,
     paddingHorizontal: 10,
-    marginRight: 10,
+    marginStart: 5
   },
 });
 

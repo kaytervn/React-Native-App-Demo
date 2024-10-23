@@ -23,6 +23,7 @@ import PostItem from "@/src/app/views/post/PostItem";
 import { PostModel } from "@/src/models/post/PostModel";
 import { avatarDefault } from "@/src/types/constant";
 import { LogBox } from 'react-native';
+import HeaderLayout from "@/src/components/header/Header";
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
 ]);
@@ -30,7 +31,7 @@ LogBox.ignoreLogs([
 const { height } = Dimensions.get("window");
 
 const PostCreateUpdate = ({
-  navigation,
+  navigation, 
   route,
 }: {
   navigation: any;
@@ -203,23 +204,22 @@ const PostCreateUpdate = ({
         return "Chọn trạng thái";
     }
   };
-
+  const RightButton = () => (
+    <TouchableOpacity onPress={handleSubmit}>
+      <Text style={styles.postButtonText}>
+        {isUpdating ? "Cập nhật" : "Đăng"}
+      </Text>
+    </TouchableOpacity> 
+  );
   return (
     <View style={styles.container}>
       {loadingDialog && <LoadingDialog isVisible={loadingDialog} />}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}
-        </Text>
-        <TouchableOpacity style={styles.postButton} onPress={handleSubmit}>
-          <Text style={styles.postButtonText}>
-            {isUpdating ? "Cập nhật" : "Đăng"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <HeaderLayout
+        title={isUpdating ? "Cập nhật bài đăng" : "Tạo bài đăng"}
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+        RightIcon={RightButton}
+      />
 
       <View style={styles.userContainer}>
         <Image
@@ -324,6 +324,8 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 15,
+    borderColor: "#ffffff",
   },
   input: {
     paddingHorizontal: 15,

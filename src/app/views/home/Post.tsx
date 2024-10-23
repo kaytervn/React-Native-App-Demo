@@ -197,11 +197,7 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
     <TouchableOpacity
       style={styles.inputCreatePost}
       onPress={() => {
-        navigation.navigate("PostCreateUpdate", {
-          onRefresh: () => {
-            handleRefresh();
-          }
-        });
+        handleAddNew();
       }}
       onLongPress={() => {}}
     >
@@ -212,6 +208,14 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
       </View>
     </TouchableOpacity>
   );
+
+  const handleAddNew = () => {
+    navigation.navigate("PostCreateUpdate", {
+      onRefresh: () => {
+        handleRefresh();
+      }
+    });
+  }
 
   //from update post
   useFocusEffect(
@@ -253,6 +257,8 @@ const PostContent = ({ navigation, route, setIsTabBarVisible  }: any) => {
         onSearch={handleSearch}
         placeholder="Tìm kiếm bài đăng..."
         handleClear={clearSearch}
+        additionalIcon="add"
+        onAdditionalIconPress={() => handleAddNew()}
       />
 
       <View style={styles.tabContainer}>

@@ -41,7 +41,7 @@ const NotificationItem = ({ item, onItemClick }: any) => {
     >
       <View style={styles.iconContainer}>
          <Image 
-          source= {item.data.user.avatar ? {uri: item.data.user.avatar} : avatarDefault}
+          source= {item.data.user.avatarUrl ? {uri: item.data.user.avatarUrl} : avatarDefault}
           style={styles.avatar}
         />
       </View>

@@ -14,4 +14,9 @@ export interface UserModel {
   secretKey: string | null
   role: Role | null
   lastLogin: string | null
+  totalFriends: number
+  totalFriendRequestsSent: number
+  totalFriendRequestsReceived: number
+  totalUnreadMessages: number
+  totalUnreadNotifications: number
 }

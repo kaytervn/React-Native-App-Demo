@@ -24,8 +24,6 @@ const Stack = createNativeStackNavigator<{
   PostDetail: any;
   Post: any;
   PostCreateUpdate: any;
-  ChatList: any;
-  ChatDetail: any;
   PostComment: any;
   RequestKeyChange: any;
   VerifyKeyChange: any;
@@ -33,6 +31,7 @@ const Stack = createNativeStackNavigator<{
   FriendRequest: any;
   FriendSendRequest: any;
   FriendAdd: any;
+  ChatDetail:any
 }>();
 
 const Tab = createBottomTabNavigator();

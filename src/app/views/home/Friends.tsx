@@ -19,6 +19,7 @@ import { FriendModel } from "@/src/models/friend/FriendModel";
 import FriendItem from "../friend/FriendItem";
 import AddFriendModal from "../friend/FriendAdd";
 import FriendAdd from "../friend/FriendAdd";
+import { UserModel } from "@/src/models/user/UserModel";
 
 const Friends = ({ navigation }: any) => {
   const { get, loading } = useFetch();
@@ -28,12 +29,22 @@ const Friends = ({ navigation }: any) => {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState(0);
-
+  const [user, setUser] = useState<UserModel>();
   const size = 10;
 
   useEffect(() => {
+    fetchUserData();
     fetchData(0);
   }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const res = await get("/v1/user/profile");
+      setUser(res.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
   const handleSearch = async () => {
     setLoadingDialog(true);
@@ -83,6 +94,7 @@ const Friends = ({ navigation }: any) => {
     setRefreshing(true);
     setSearchQuery("");
     setPage(0);
+    fetchUserData();
     getFriends(0, "").then(() => setRefreshing(false));
   };
 
@@ -92,7 +104,6 @@ const Friends = ({ navigation }: any) => {
     }
   };
   
-
   const renderFriendItem = ({ item }: { item: FriendModel }) => (
     <FriendItem 
       item={item}
@@ -106,16 +117,32 @@ const Friends = ({ navigation }: any) => {
         style={styles.headerButton} 
         onPress={() => navigation.navigate("FriendRequest")}
       >
-        <Ionicons name="person-add-outline" size={24} color="#0084ff" />
-        <Text style={styles.headerButtonText}>Lời mời kết bạn</Text>
+          <View style={styles.buttonContent}>
+            <Ionicons name="person-add-outline" size={24} color="#0084ff" />
+            <Text style={styles.headerButtonText}>Lời mời kết bạn</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{user?.totalFriendRequestsReceived}</Text>
+            </View>
+          </View>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.headerButton} 
         onPress={() => navigation.navigate("FriendSendRequest")}
       >
-        <Ionicons name="people-outline" size={24} color="#0084ff" />
-        <Text style={styles.headerButtonText}>Yêu cầu kết bạn</Text>
+         <View style={styles.buttonContent}>
+            <Ionicons name="people-outline" size={24} color="#0084ff" />
+            <Text style={styles.headerButtonText}>Yêu cầu kết bạn</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{user?.totalFriendRequestsSent}</Text>
+            </View>
+          </View>
       </TouchableOpacity>
+
+      <View style={styles.totalFriendsContainer}>
+        <Text style={styles.totalFriendsText}>
+          Bạn bè ({friends.length})
+        </Text>
+      </View>
     </View>
   );
 
@@ -129,9 +156,9 @@ const Friends = ({ navigation }: any) => {
         onSubmitEditing={handleSearch}
         onSearch={handleSearch}
         placeholder="Tìm kiếm bạn bè..."
+        handleClear={clearSearch}
         additionalIcon="add"
         onAdditionalIconPress={() => navigation.navigate("FriendAdd")}
-        handleClear={clearSearch}
       />
 
       <FlatList
@@ -186,9 +213,9 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: "#fff",
-    paddingVertical: 10,
+    paddingTop: 5,
     paddingHorizontal: 15,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   headerButton: {
     flexDirection: "row",
@@ -196,14 +223,48 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f3f2",
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   headerButtonText: {
     marginLeft: 10,
     fontSize: 16,
     color: "#1c1e21",
+    flex: 1
   },
 
+  //Badges
+  totalFriendsContainer: {
+    backgroundColor: "#fff",
+    paddingStart: 0,
+    paddingVertical: 10
+  },
+  totalFriendsText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1c1e21",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Add this
+    width: "100%",
+  },
+  
+  badge: {
+    backgroundColor: "#f56e58",
+    borderRadius: 12.5,
+    minWidth: 25,
+    height: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    marginLeft: 10,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
 
 });
 
