@@ -36,7 +36,7 @@ const ChatContent = ({ navigation, setIsTabBarVisible }: any) => {
   }, []);
 
   const fetch = async () => {
-    const key = await fetchUserData();i
+    const key = await fetchUserData();
     await getChatsFirst(0, "", key);
   };
   const fetchUserData = async () => {
@@ -208,7 +208,7 @@ const ChatContent = ({ navigation, setIsTabBarVisible }: any) => {
 
       <FlatList
         data={chats}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item, index) => `${item._id} - ${index}`}
         renderItem={renderChatItem}
         refreshing={refreshing}
         onRefresh={handleRefresh}
